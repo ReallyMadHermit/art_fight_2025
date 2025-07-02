@@ -1,13 +1,16 @@
 use bevy::prelude::*;
 
+mod common;
+
+mod dino_run;
+
+use dino_run::DinoRunPlugin;
+
 // MAIN
 fn main() {
     println!("hello world!");
-    // let hues = MaterialWizard::generate_hue_vec(16);
-    // for h in hues {
-    //     println!("{}", h);
-    // };
     App::new()
         .add_plugins(DefaultPlugins)
+        .add_plugins(DinoRunPlugin)
         .run();
 }
