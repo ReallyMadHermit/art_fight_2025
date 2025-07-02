@@ -13,7 +13,7 @@ pub struct MaterialWizard {
 
     pub fn new(
         materials: &mut ResMut<Assets<StandardMaterial>>, reference_material: StandardMaterial,
-        saturation: f32, lightness: f32, alpha: f32, color_count: usize, use_emissive: bool, unlit: bool
+        saturation: f32, lightness: f32, alpha: f32, color_count: usize, emissive: f32, unlit: bool
     ) -> Self {
         let hues = Self::generate_normal_hue_vec(color_count);
         let mut standard_materials: Vec<StandardMaterial> = Vec::with_capacity(color_count);
@@ -22,9 +22,10 @@ pub struct MaterialWizard {
             mat.base_color = Color::hsla(hue * 360.0, saturation, lightness, alpha);
             standard_materials.push(mat);
         };
-        if use_emissive {
+        if emissive > 0.0 {
             for mat in &mut standard_materials {
                 mat.emissive = mat.base_color.to_linear();
+                mat.emissive_exposure_weight = emissive;
             };
         };
         if alpha < 1.0 {
@@ -56,7 +57,7 @@ pub struct MaterialWizard {
         };
         Self::new(
             materials, basic_material,
-            saturation, lightness, alpha, color_count, false, unlit
+            saturation, lightness, alpha, color_count, 0.0, unlit
         )
     }
 
