@@ -123,32 +123,35 @@ fn player_jump_system(
     let jump_v = 8.0;
     // statics
     let dt = time.delta_secs();
-    let g = 20.0;
+    let g = 20.0 * dt;
     let f = g / 2.0;
     // inputs
-    let jumped = keys.just_pressed(KeyCode::Space) 
-        || keys.just_pressed(KeyCode::ArrowUp) 
+    let jumped = keys.just_pressed(KeyCode::Space)
+        || keys.just_pressed(KeyCode::ArrowUp)
         || keys.just_pressed(KeyCode::KeyW);
     let held = keys.pressed(KeyCode::Space)
         || keys.pressed(KeyCode::ArrowUp)
         || keys.pressed(KeyCode::KeyW);
     // query
     if let Ok((mut t, mut p)) = query.single_mut() {
-        // catch and stop a falling player
+        // jump key
         if t.translation.z < 0.25 && p.velocity <= 0.0 && jumped {
             p.velocity = jump_v;
         };
+        // gravity, hold to jump higher
         let float = held && p.velocity > 0.0;
         if t.translation.z > 0.0 {
             if float {
-                p.velocity -= f * dt;
+                p.velocity -= f;
             } else {
-                p.velocity -= g * dt; 
+                p.velocity -= g;
             };
         };
+        // apply velocity
         if p.velocity != 0.0 {
             t.translation.z += p.velocity * dt;
         };
+        // catch falling player
         if p.velocity < 0.0 && t.translation.z <= 0.0 {
             t.translation.z = 0.0;
             p.velocity = 0.0;
