@@ -16,6 +16,8 @@ impl Plugin for DinoRunPlugin {
         app.add_systems(FixedPreUpdate, obstacle_spawn_timing);
         app.add_systems(FixedPreUpdate, obstacle_spawner.after(obstacle_spawn_timing).run_if(event_exists!(SpawnObstacle)));
         app.add_systems(Update, update_obstacles);
+        app.add_event::<PlayerHit>();
+        app.add_event::<PlayerScores>();
     }
 }
 
@@ -281,11 +283,19 @@ fn obstacle_spawner(
     };
 }
 
+#[derive(Event)]
+struct PlayerHit;
+
+#[derive(Event)]
+struct PlayerScores;
+
 fn update_obstacles (
     mut transform_query: Query<&mut Transform>,
     mut obstacle_query: Query<(&mut Obstacle, Entity)>,
     p_entity: Res<PlayerEntity>,
-    time: Res<Time>
+    time: Res<Time>,
+    mut hit_writer: EventWriter<PlayerHit>,
+    mut score_writer: EventWriter<PlayerScores>
 ) {
     let dt = time.delta_secs();
     let motion = dt * 5.0;
@@ -298,9 +308,11 @@ fn update_obstacles (
         } else if transform.translation.x.abs() < obstacle.radius && player_z < obstacle.height {
             println!("Hit!!");
             obstacle.scored = true;
+            hit_writer.write(PlayerHit);
         } else if transform.translation.x < -obstacle.radius {
             obstacle.scored = true;
-            println!("Score!!")
+            println!("Score!!");
+            score_writer.write(PlayerScores);
         };
     };
 }
