@@ -23,17 +23,17 @@ pub struct MaterialWizard {
             standard_materials.push(mat);
         };
         if use_emissive {
-            for mut mat in &mut standard_materials {
+            for mat in &mut standard_materials {
                 mat.emissive = mat.base_color.to_linear();
             };
         };
         if alpha < 1.0 {
-            for mut mat in &mut standard_materials {
+            for mat in &mut standard_materials {
                 mat.alpha_mode = AlphaMode::Blend;
             };
         };
         if unlit {
-            for mut mat in &mut standard_materials {
+            for mat in &mut standard_materials {
                 mat.unlit = true;
             };
         };
