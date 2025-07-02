@@ -2,9 +2,9 @@ use bevy::prelude::*;
 
 mod common;
 
-mod dino_run;
+mod dino_run_mechanics;
 
-use dino_run::DinoRunPlugin;
+use dino_run_mechanics::DinoRunPlugin;
 
 // MAIN
 fn main() {
