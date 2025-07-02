@@ -87,7 +87,7 @@ fn spawn_debug_cube(
 }
 
 #[derive(Component)]
-pub struct Player{
+struct Player{
     velocity: f32
 }
 
