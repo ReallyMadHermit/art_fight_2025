@@ -1,6 +1,7 @@
 use bevy::{core_pipeline::{bloom::Bloom, smaa::Smaa, tonemapping::Tonemapping}, prelude::*};
 use std::f32::consts::FRAC_PI_8;
 use crate::common::MaterialWizard;
+use crate::event_exists;
 
 pub struct DinoRunPlugin;
 impl Plugin for DinoRunPlugin {
@@ -10,6 +11,11 @@ impl Plugin for DinoRunPlugin {
         app.add_systems(Startup, spawn_light);
         app.add_systems(Startup, spawn_player_cube);
         app.add_systems(PreUpdate, player_jump_system);
+        app.add_systems(Startup, insert_obstacle_resources);
+        app.add_event::<SpawnObstacle>();
+        app.add_systems(FixedPreUpdate, obstacle_spawn_timing);
+        app.add_systems(FixedPreUpdate, obstacle_spawner.after(obstacle_spawn_timing).run_if(event_exists!(SpawnObstacle)));
+        app.add_systems(Update, update_obstacles);
     }
 }
 
@@ -29,8 +35,8 @@ fn spawn_camera(
                     ..default()
                 }
             ),
-            Transform::from_translation(Vec3::new(0.0, -20.0, 10.0))
-                .looking_at(Vec3::new(0.0, 0.0, 3.0), Vec3::Z),
+            Transform::from_translation(Vec3::new(2.5, -20.0, 10.0))
+                .looking_at(Vec3::new(2.5, 0.0, 3.0), Vec3::Z),
             Bloom::OLD_SCHOOL,
             Tonemapping::AcesFitted,
             Smaa::default(),
@@ -67,11 +73,11 @@ fn spawn_debug_cube(
         }
     );
     let mesh = meshes.add(
-        Cuboid::new(10.0, 3.0, 0.2)
+        Cuboid::new(10.0, 10.0, 0.5)
     );
     commands.spawn(
         (
-            Transform::default(),
+            Transform::from_xyz(2.5, 0.0, -0.25),
             Mesh3d(mesh),
             MeshMaterial3d(mat)
             )
@@ -81,6 +87,11 @@ fn spawn_debug_cube(
 #[derive(Component)]
 pub struct Player{
     velocity: f32
+}
+
+#[derive(Resource)]
+pub struct PlayerEntity {
+    entity: Entity
 }
 
 fn spawn_player_cube(
@@ -112,6 +123,7 @@ fn spawn_player_cube(
             ChildOf(player)
         )
     );
+    commands.insert_resource(PlayerEntity{entity: player});
 }
 
 fn player_jump_system(
@@ -159,28 +171,136 @@ fn player_jump_system(
     };
 }
 
-// #[derive(Component)]
-// struct Obstacle {
-//     radius: f32,
-//     height: f32,
-//     scored: bool
-// }
-// 
-// #[derive(Resource)]
-// struct ObstacleTimer {
-//     next: f32
-// }
-// 
-// #[derive(Resource)]
-// struct ObstacleAssets {
-//     hex_prism_mesh: Handle<Mesh>,
-//     cube_mesh: Handle<Mesh>
-// }
-// 
-// fn insert_obstacle_resources(
-//     commands: Commands,
-//     mut meshes: ResMut<Assets<Mesh>>,
-//     mut materials: ResMut<Assets<StandardMaterial>>
-// ) {
-//     
-// }
+#[derive(Resource)]
+struct ObstacleAssets {
+    hexagon_prism_mesh: Handle<Mesh>,
+    pentagon_prism_mesh: Handle<Mesh>,
+    cube_mesh: Handle<Mesh>,
+    wizard: MaterialWizard
+}
+
+const COLOR_COUNT: usize = 16;
+
+fn insert_obstacle_resources(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    time: Res<Time>
+) {
+    let wizard = {
+        let saturation = 1.0;
+        let lightness = 0.5;
+        let alpha = 0.5;
+        let color_count = COLOR_COUNT;
+        let crystal_mat = StandardMaterial {
+            base_color: Color::WHITE.with_alpha(alpha),
+            perceptual_roughness: 0.2,
+            reflectance: 0.6,
+            diffuse_transmission: 0.3,
+            ..default()
+        };
+        MaterialWizard::new(
+            &mut materials, crystal_mat, saturation,
+            lightness, alpha, color_count, 0.0, false,
+        )
+    };
+    let hex = meshes.add(
+        Extrusion::new(
+            RegularPolygon::new(0.5, 6),
+            1.0
+        )
+    );
+    let pen = meshes.add(
+        Extrusion::new(
+            RegularPolygon::new(0.5, 5),
+            1.0
+        )
+    );
+    let cube = meshes.add(
+        Cuboid::from_length(1.0)
+    );
+    let obs_assets = ObstacleAssets {
+        hexagon_prism_mesh: hex,
+        pentagon_prism_mesh: pen,
+        cube_mesh: cube,
+        wizard
+    };
+    commands.insert_resource(obs_assets);
+    commands.insert_resource(ObstacleTimer{next: time.elapsed_secs() + 1.0, count: 0});
+}
+
+#[derive(Event)]
+struct SpawnObstacle{
+    count: u32
+}
+
+#[derive(Resource)]
+struct ObstacleTimer {
+    next: f32,
+    count: u32
+}
+
+fn obstacle_spawn_timing(
+    time: Res<Time>,
+    mut obstacle_timer: ResMut<ObstacleTimer>,
+    mut event_writer: EventWriter<SpawnObstacle>
+) {
+    let t = time.elapsed_secs();
+    if t >= obstacle_timer.next {
+        event_writer.write(SpawnObstacle{count: obstacle_timer.count});
+        obstacle_timer.next = t + 5.0;
+        obstacle_timer.count +=1;
+    };
+}
+
+#[derive(Component)]
+struct Obstacle {
+    radius: f32,
+    height: f32,
+    scored: bool
+}
+
+fn obstacle_spawner(
+    mut event_reader: EventReader<SpawnObstacle>,
+    assets: Res<ObstacleAssets>,
+    mut commands: Commands
+) {
+    for event in event_reader.read() {
+        commands.spawn(
+            (
+                Transform::from_xyz(10.0, 0.0, 0.5),
+                Mesh3d(assets.cube_mesh.clone()),
+                MeshMaterial3d(assets.wizard.get_index((event.count as usize) % COLOR_COUNT)),
+                Obstacle {
+                    radius: 0.5,
+                    height: 1.0,
+                    scored: false
+                }
+            )
+        );
+    };
+}
+
+fn update_obstacles (
+    mut transform_query: Query<&mut Transform>,
+    mut obstacle_query: Query<(&mut Obstacle, Entity)>,
+    p_entity: Res<PlayerEntity>,
+    time: Res<Time>
+) {
+    let dt = time.delta_secs();
+    let motion = dt * 5.0;
+    let player_z = transform_query.get(p_entity.entity).unwrap().translation.z;
+    for (mut obstacle, entity) in &mut obstacle_query {
+        let mut transform = transform_query.get_mut(entity).unwrap();
+        transform.translation.x -= motion;
+        if obstacle.scored {
+            continue;
+        } else if transform.translation.x.abs() < obstacle.radius && player_z < obstacle.height {
+            println!("Hit!!");
+            obstacle.scored = true;
+        } else if transform.translation.x < -obstacle.radius {
+            obstacle.scored = true;
+            println!("Score!!")
+        };
+    };
+}
