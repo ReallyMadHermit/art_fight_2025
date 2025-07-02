@@ -134,10 +134,10 @@ fn player_jump_system(
     time: Res<Time>
 ) {
     //vars
-    let jump_v = 8.0;
+    let jump_v = 10.0;
     // statics
     let dt = time.delta_secs();
-    let g = 20.0 * dt;
+    let g = 40.0 * dt;
     let f = g / 2.0;
     // inputs
     let jumped = keys.just_pressed(KeyCode::Space)
@@ -309,7 +309,7 @@ fn update_obstacles (
             println!("Hit!!");
             obstacle.scored = true;
             hit_writer.write(PlayerHit);
-        } else if transform.translation.x < -obstacle.radius {
+        } else if transform.translation.x < -0.0 {
             obstacle.scored = true;
             println!("Score!!");
             score_writer.write(PlayerScores);
