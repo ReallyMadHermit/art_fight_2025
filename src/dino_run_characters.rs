@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use std::f32::consts::{SQRT_2, PI, FRAC_PI_2};
 use bevy::pbr::NotShadowCaster;
-use crate::dino_run_mechanics::{Speed, Player, JUMP_V};
+use crate::dino_run_mechanics::{LevelSpeed, Player, JUMP_V};
 
 const PITCH_CONSTANT: f32 = SQRT_2 / 2.0;
 
@@ -14,12 +14,8 @@ pub struct AnimationState {
 #[derive(Component, Copy, Clone, PartialEq, Eq)]
 pub enum LegPart {
     Hip,
-    LeftHip,
-    RightHip,
     LeftThigh,
     RightThigh,
-    LeftKnee,
-    RightKnee,
     LeftShin,
     RightShin,
     LeftFoot,
@@ -40,9 +36,6 @@ pub enum LegPart {
     ];
 }
 
-const BLACK: f32 = 0.05;
-const GREY: f32 = 0.65;
-
 pub fn spawn_legs(
     player: Entity,
     commands: &mut Commands,
@@ -50,19 +43,14 @@ pub fn spawn_legs(
     materials: &mut ResMut<Assets<StandardMaterial>>,
 ) -> Entity {
     let joint_mesh = meshes.add(Sphere::new(0.125));
-    let debug_material = materials.add(StandardMaterial {
-        base_color: Color::linear_rgb(1.0, 0.0, 0.0),
-        unlit: true,
-        ..default()
-    });
     let bone_mesh = meshes.add(Cuboid::new(0.15, 0.2, 0.6));
     let black = materials.add(StandardMaterial::from_color(Color::linear_rgb(0.05, 0.05, 0.05)));
     let grey = materials.add(StandardMaterial::from(Color::linear_rgb(0.65, 0.65, 0.65)));
     let mut hip_entity = Entity::PLACEHOLDER;
     for leg_part in LegPart::ALL{
         let mesh = match leg_part {
-            LegPart::Hip | LegPart::LeftHip | LegPart::RightHip | LegPart::LeftKnee | 
-            LegPart::RightKnee | LegPart::LeftFoot | LegPart::RightFoot => {
+            LegPart::Hip | 
+            LegPart::LeftFoot | LegPart::RightFoot => {
                 joint_mesh.clone()
             }
             _ => {
@@ -70,7 +58,7 @@ pub fn spawn_legs(
             }
         };
         let mat = match leg_part {
-            LegPart::Hip | LegPart::LeftHip | LegPart::RightHip | LegPart::LeftThigh | 
+            LegPart::Hip | LegPart::LeftThigh | 
             LegPart::RightThigh |LegPart::LeftFoot | LegPart::RightFoot => {
                 black.clone()
             },
@@ -106,16 +94,15 @@ pub fn animate_legs(
     mut query: Query<(&mut Transform, &LegPart)>,
     animation_state: Res<AnimationState>,
     time: Res<Time>,
-    speed: Res<Speed>
+    speed: Res<LevelSpeed>
 ) {
-    let d = (time.elapsed_secs() - animation_state.start) * speed.f32;
     let (
         left_foot, right_foot, left_knee, right_knee, hip, left_hip, right_hip
     ) = if animation_state.jumping {
         (Vec3::ZERO, Vec3::ZERO, Vec3::ZERO, Vec3::ZERO, Vec3::ZERO, Vec3::ZERO, Vec3::ZERO)
     } else {
         let step_distance = PITCH_CONSTANT;
-        let t = (time.elapsed_secs() - animation_state.start) * (5.0 / (step_distance * 2.0));
+        let t = (time.elapsed_secs() - animation_state.start) * (speed.f32 / (step_distance * 2.0));
         let t1 = t % 2.0;
         let t2 = (t + 1.0) % 2.0;
         let step_height = 0.5;
@@ -136,8 +123,6 @@ pub fn animate_legs(
     for (mut transform, &joint) in &mut query {
         match joint {
             LegPart::Hip => {transform.translation = hip;},
-            LegPart::LeftHip => {transform.translation = left_hip;},
-            LegPart::RightHip => {transform.translation = right_hip;},
             LegPart::LeftThigh => {
                 transform.translation = (left_hip + left_knee) / 2.0;
                 transform.look_at(left_knee, Vec3::Z);
@@ -146,8 +131,6 @@ pub fn animate_legs(
                 transform.translation = (right_hip + right_knee) / 2.0;
                 transform.look_at(right_knee, Vec3::Z)
             },
-            LegPart::LeftKnee => {transform.translation = left_knee;},
-            LegPart::RightKnee => {transform.translation = right_knee;},
             LegPart::LeftShin => {
                 transform.translation = (left_knee + left_foot) / 2.0;
                 transform.look_at(left_foot, Vec3::Z);
@@ -203,10 +186,7 @@ fn calculate_knee_pos(
 }
 
 #[derive(Component, Copy, Clone, PartialEq, Eq)]
-pub enum BodyPart {
-    Torso(u8),
-    Neck(u8)
-}
+pub struct BodyPart;
 
 #[derive(Component, Copy, Clone, PartialEq, Eq)]
 pub struct TailSegment {
@@ -225,7 +205,6 @@ pub fn spawn_body (
     materials: &mut ResMut<Assets<StandardMaterial>>
 ) -> Entity {
     let black = materials.add(StandardMaterial::from_color(Color::linear_rgb(0.05, 0.05, 0.05)));
-    let grey = materials.add(StandardMaterial::from(Color::linear_rgb(0.65, 0.65, 0.65)));
     let yellow = materials.add(StandardMaterial::from_color(Color::hsl(58.0, 1.0, 0.5)));
     let body0_mesh = meshes.add(Cuboid::new(0.5, 0.5, 0.6));
     let body1_mesh = meshes.add(Cuboid::new(0.5, 0.4, 0.5));
@@ -239,7 +218,7 @@ pub fn spawn_body (
     let body_0 = commands.spawn(
         (
             Transform::default(),
-            BodyPart::Torso(0),
+            BodyPart,
             Visibility::Inherited,
             ChildOf(hip_entity),
             Mesh3d(body0_mesh),
@@ -249,7 +228,7 @@ pub fn spawn_body (
     let body_1 = commands.spawn(
         (
             Transform::from_xyz(0.5, 0.0, 0.05),
-            BodyPart::Torso(1),
+            BodyPart,
             Visibility::Inherited,
             ChildOf(hip_entity),
             Mesh3d(body1_mesh),
@@ -259,7 +238,7 @@ pub fn spawn_body (
     let body_2 = commands.spawn(
         (
             Transform::from_xyz(-0.45, 0.0, 0.1),
-            BodyPart::Torso(2),
+            BodyPart,
             Visibility::Inherited,
             ChildOf(hip_entity),
             Mesh3d(body2_mesh),
@@ -330,7 +309,7 @@ pub fn animate_tail(
     player_query: Query<&Player>,
     animation_state: Res<AnimationState>,
     time: Res<Time>,
-    speed: Res<Speed>
+    speed: Res<LevelSpeed>
 ) {
     if animation_state.jumping {
         let v = player_query.single().unwrap().velocity;
@@ -342,10 +321,8 @@ pub fn animate_tail(
             transform.translation.y = 0.0;
         };
     } else {
-        let d = (time.elapsed_secs() - animation_state.start) * speed.f32;
-        let ys = [0.0f32; TAIL_LENGTH];
         let step_distance = PITCH_CONSTANT;
-        let t = (time.elapsed_secs() - animation_state.start) * (5.0 / (step_distance * 2.0));
+        let t = (time.elapsed_secs() - animation_state.start) * (speed.f32 / (step_distance * 2.0));
         let a = t * PI;
         let a_step = (PI * 2.0) / TAIL_LENGTH as f32;
         for (mut transform, segment) in &mut query {

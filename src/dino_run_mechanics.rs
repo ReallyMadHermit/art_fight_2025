@@ -19,7 +19,7 @@ impl Plugin for DinoRunPlugin {
         app.add_systems(Update, update_obstacles);
         app.add_event::<PlayerHit>();
         app.add_event::<PlayerScores>();
-        app.insert_resource(Speed{f32: 5.0});
+        app.insert_resource(LevelSpeed {f32: 5.0});
         app.add_systems(Update, animate_legs);
         app.add_systems(Update, animate_tail);
     }
@@ -292,7 +292,7 @@ struct PlayerHit;
 struct PlayerScores;
 
 #[derive(Resource)]
-pub struct Speed {
+pub struct LevelSpeed {
     pub f32: f32
 }
 
@@ -301,7 +301,7 @@ fn update_obstacles (
     mut obstacle_query: Query<(&mut Obstacle, Entity)>,
     p_entity: Res<PlayerEntity>,
     time: Res<Time>,
-    speed: Res<Speed>,
+    speed: Res<LevelSpeed>,
     mut hit_writer: EventWriter<PlayerHit>,
     mut score_writer: EventWriter<PlayerScores>
 ) {
