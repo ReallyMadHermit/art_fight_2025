@@ -23,12 +23,8 @@ pub enum LegPart {
 } impl LegPart {
     const ALL: [LegPart; 7] = [
         Self::Hip,
-        // Self::LeftHip,
-        // Self::RightHip,
         Self::LeftThigh,
         Self::RightThigh,
-        // Self::LeftKnee,
-        // Self::RightKnee,
         Self::LeftShin,
         Self::RightShin,
         Self::LeftFoot,
