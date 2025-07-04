@@ -2,6 +2,7 @@ use bevy::{core_pipeline::{bloom::Bloom, smaa::Smaa, tonemapping::Tonemapping}, 
 use std::f32::consts::FRAC_PI_8;
 use crate::common::MaterialWizard;
 use crate::event_exists;
+use crate::dino_run_characters::{spawn_legs, animate_legs, AnimationState, spawn_body, animate_tail};
 
 pub struct DinoRunPlugin;
 impl Plugin for DinoRunPlugin {
@@ -18,6 +19,9 @@ impl Plugin for DinoRunPlugin {
         app.add_systems(Update, update_obstacles);
         app.add_event::<PlayerHit>();
         app.add_event::<PlayerScores>();
+        app.insert_resource(Speed{f32: 5.0});
+        app.add_systems(Update, animate_legs);
+        app.add_systems(Update, animate_tail);
     }
 }
 
@@ -58,7 +62,7 @@ fn spawn_light(
                 shadows_enabled: true,
                 ..default()
             },
-            Transform::from_translation(Vec3::new(0.0, 0.0, 10.0)).looking_at(Vec3::ZERO, Vec3::Z)
+            Transform::from_translation(Vec3::new(5.0, -5.0, 10.0)).looking_at(Vec3::ZERO, Vec3::Z)
         )
     );
 }
@@ -87,8 +91,8 @@ fn spawn_debug_cube(
 }
 
 #[derive(Component)]
-struct Player{
-    velocity: f32
+pub struct Player{
+    pub velocity: f32
 }
 
 #[derive(Resource)]
@@ -108,33 +112,46 @@ fn spawn_player_cube(
             Visibility::Visible
         )
     ).id();
-    commands.spawn(
-        (
-            Mesh3d(
-                meshes.add(Cuboid::new(1.0, 1.0, 2.0))
-            ),
-            MeshMaterial3d(
-                materials.add(
-                    StandardMaterial {
-                        base_color: Color::WHITE,
-                        ..default()
-                    }
-                )
-            ),
-            Transform::from_xyz(0.0, 0.0, 1.0),
-            ChildOf(player)
-        )
+    let hip = spawn_legs(
+        player,
+        &mut commands,
+        &mut meshes,
+        &mut materials
     );
+    spawn_body(
+        hip,
+        &mut commands,
+        &mut meshes,
+        &mut materials
+    );
+    // commands.spawn(
+    //     (
+    //         Mesh3d(
+    //             meshes.add(Cuboid::new(1.0, 1.0, 2.0))
+    //         ),
+    //         MeshMaterial3d(
+    //             materials.add(
+    //                 StandardMaterial {
+    //                     base_color: Color::WHITE,
+    //                     ..default()
+    //                 }
+    //             )
+    //         ),
+    //         Transform::from_xyz(0.0, 0.0, 1.0),
+    //         ChildOf(player)
+    //     )
+    // );
     commands.insert_resource(PlayerEntity{entity: player});
 }
+
+pub const JUMP_V: f32 = 10.0;
 
 fn player_jump_system(
     mut query: Query<(&mut Transform, &mut Player)>,
     keys: Res<ButtonInput<KeyCode>>,
-    time: Res<Time>
+    time: Res<Time>,
+    mut animation_state: ResMut<AnimationState>
 ) {
-    //vars
-    let jump_v = 10.0;
     // statics
     let dt = time.delta_secs();
     let g = 40.0 * dt;
@@ -150,7 +167,8 @@ fn player_jump_system(
     if let Ok((mut t, mut p)) = query.single_mut() {
         // jump key
         if t.translation.z < 0.25 && p.velocity <= 0.0 && jumped {
-            p.velocity = jump_v;
+            p.velocity = JUMP_V;
+            animation_state.jumping = true;
         };
         // gravity, hold to jump higher
         let float = held && p.velocity > 0.0;
@@ -169,6 +187,7 @@ fn player_jump_system(
         if p.velocity < 0.0 && t.translation.z <= 0.0 {
             t.translation.z = 0.0;
             p.velocity = 0.0;
+            animation_state.jumping = false;
         };
     };
 }
@@ -289,16 +308,22 @@ struct PlayerHit;
 #[derive(Event)]
 struct PlayerScores;
 
+#[derive(Resource)]
+pub struct Speed {
+    pub f32: f32
+}
+
 fn update_obstacles (
     mut transform_query: Query<&mut Transform>,
     mut obstacle_query: Query<(&mut Obstacle, Entity)>,
     p_entity: Res<PlayerEntity>,
     time: Res<Time>,
+    speed: Res<Speed>,
     mut hit_writer: EventWriter<PlayerHit>,
     mut score_writer: EventWriter<PlayerScores>
 ) {
     let dt = time.delta_secs();
-    let motion = dt * 5.0;
+    let motion = dt * speed.f32;
     let player_z = transform_query.get(p_entity.entity).unwrap().translation.z;
     for (mut obstacle, entity) in &mut obstacle_query {
         let mut transform = transform_query.get_mut(entity).unwrap();
