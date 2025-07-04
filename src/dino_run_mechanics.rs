@@ -124,23 +124,6 @@ fn spawn_player_cube(
         &mut meshes,
         &mut materials
     );
-    // commands.spawn(
-    //     (
-    //         Mesh3d(
-    //             meshes.add(Cuboid::new(1.0, 1.0, 2.0))
-    //         ),
-    //         MeshMaterial3d(
-    //             materials.add(
-    //                 StandardMaterial {
-    //                     base_color: Color::WHITE,
-    //                     ..default()
-    //                 }
-    //             )
-    //         ),
-    //         Transform::from_xyz(0.0, 0.0, 1.0),
-    //         ChildOf(player)
-    //     )
-    // );
     commands.insert_resource(PlayerEntity{entity: player});
 }
 
