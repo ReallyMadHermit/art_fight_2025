@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use std::f32::consts::{SQRT_2, PI, FRAC_PI_2};
-use bevy::pbr::NotShadowCaster;
+use bevy::pbr::{NotShadowCaster, NotShadowReceiver};
 use crate::dino_run_mechanics::{LevelSpeed, Player, JUMP_V};
 
 const PITCH_CONSTANT: f32 = SQRT_2 / 2.0;
@@ -286,12 +286,14 @@ pub fn spawn_body (
         )
     );
     let tail_stripe_mesh = meshes.add(Cuboid::new(
-        TAIL_STEP + STRIPE_DEPTH, 0.25  + STRIPE_DEPTH, 0.05));
-    let tail_mesh = meshes.add(Cuboid::new(TAIL_STEP, 0.25, 0.25));
+        TAIL_STEP + STRIPE_DEPTH, 0.3  + STRIPE_DEPTH, 0.05));
+    let tail_mesh = meshes.add(Cuboid::new(TAIL_STEP, 0.3, 0.3));
     for i in 0..TAIL_LENGTH {
+        let s = 1.0 - (i as f32 * 0.05);
         let seg = commands.spawn(
             (
-                Transform::from_xyz(-TAIL_STEP * i as f32 - 0.5, 0.0, TAIL_Z),
+                Transform::from_xyz(-TAIL_STEP * i as f32 - 0.5, 0.0, TAIL_Z)
+                    .with_scale(Vec3::new(1.0, s, s)),
                 TailSegment{i: i as u8},
                 Visibility::Inherited,
                 ChildOf(body_0),
@@ -359,7 +361,14 @@ pub fn spawn_neck_and_head(
     let black = materials.add(
         StandardMaterial::from_color(Color::linear_rgb(0.05, 0.05, 0.05)));
     let yellow = materials.add(
-        StandardMaterial::from_color(Color::hsl(58.0, 1.0, 0.5)));
+        StandardMaterial::from_color(Color::hsl(58.0, 1.5, 0.5)));
+    let eye_color = materials.add(
+        StandardMaterial{
+            base_color: Color::hsl(38.0, 1.0, 0.5),
+            unlit: true,
+            ..default()
+        });
+    let eye_mesh = meshes.add(Sphere::new(0.05));
     let grey = materials.add(
         StandardMaterial::from(Color::linear_rgb(GREY, GREY, GREY)));
     let neck0_mesh = meshes.add(
@@ -375,7 +384,6 @@ pub fn spawn_neck_and_head(
     let neck = commands.spawn(
         (
             Transform::from_xyz(NECK_X, 0.0, 0.1),
-            BodyPart,
             Visibility::Inherited,
             ChildOf(body_1_entity),
             Mesh3d(neck0_mesh),
@@ -386,7 +394,6 @@ pub fn spawn_neck_and_head(
     let skull = commands.spawn(
         (
             Transform::from_xyz(SKULL_X, 0.0, 0.15),
-            BodyPart,
             Visibility::Inherited,
             ChildOf(body_1_entity),
             Mesh3d(skull_mesh),
@@ -394,20 +401,22 @@ pub fn spawn_neck_and_head(
             Head{i: 1}
         )
     ).id();
-    let beak = commands.spawn(
+    
+    // beak
+    commands.spawn(
         (
             Transform::from_xyz(0.3, 0.0, -0.1),
-            BodyPart,
             Visibility::Inherited,
             ChildOf(skull),
             Mesh3d(beak_mesh),
             MeshMaterial3d(grey.clone())
         )
-    ).id();
+    );
+    
+    // stripes
     commands.spawn(
         (
             Transform::default(),
-            BodyPart,
             Visibility::Inherited,
             ChildOf(neck),
             Mesh3d(neck_stripe),
@@ -418,7 +427,6 @@ pub fn spawn_neck_and_head(
     commands.spawn(
         (
             Transform::from_xyz(0.0, 0.0, -0.1),
-            BodyPart,
             Visibility::Inherited,
             ChildOf(skull),
             Mesh3d(skull_stripe),
@@ -426,4 +434,20 @@ pub fn spawn_neck_and_head(
             NotShadowCaster
         )
     );
+    
+    // eyes
+    let eye_y = 0.2f32;
+    for y in [eye_y, -eye_y] {
+        commands.spawn(
+            (
+                Transform::from_xyz(0.125, y, 0.1),
+                Visibility::Inherited,
+                ChildOf(skull),
+                Mesh3d(eye_mesh.clone()),
+                MeshMaterial3d(eye_color.clone()),
+                NotShadowCaster,
+                NotShadowReceiver
+            )
+        );
+    }
 }
