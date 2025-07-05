@@ -2,7 +2,9 @@ use bevy::{core_pipeline::{bloom::Bloom, smaa::Smaa, tonemapping::Tonemapping}, 
 use std::f32::consts::FRAC_PI_8;
 use crate::common::MaterialWizard;
 use crate::event_exists;
-use crate::dino_run_characters::{spawn_legs, animate_legs, AnimationState, spawn_body, animate_tail};
+use crate::dino_run_characters::{
+    spawn_legs, animate_legs, AnimationState, spawn_body, animate_tail, spawn_neck_and_head
+};
 
 pub struct DinoRunPlugin;
 impl Plugin for DinoRunPlugin {
@@ -118,8 +120,14 @@ fn spawn_player(
         &mut meshes,
         &mut materials
     );
-    spawn_body(
+    let body = spawn_body(
         hip,
+        &mut commands,
+        &mut meshes,
+        &mut materials
+    );
+    let neck = spawn_neck_and_head(
+        body,
         &mut commands,
         &mut meshes,
         &mut materials

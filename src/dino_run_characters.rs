@@ -4,6 +4,7 @@ use bevy::pbr::NotShadowCaster;
 use crate::dino_run_mechanics::{LevelSpeed, Player, JUMP_V};
 
 const PITCH_CONSTANT: f32 = SQRT_2 / 2.0;
+const GREY: f32 = 0.4;
 
 #[derive(Resource)]
 pub struct AnimationState {
@@ -35,8 +36,10 @@ pub fn spawn_legs(
 ) -> Entity {
     let joint_mesh = meshes.add(Sphere::new(0.125));
     let bone_mesh = meshes.add(Cuboid::new(0.15, 0.2, 0.6));
-    let black = materials.add(StandardMaterial::from_color(Color::linear_rgb(0.05, 0.05, 0.05)));
-    let grey = materials.add(StandardMaterial::from(Color::linear_rgb(0.65, 0.65, 0.65)));
+    let black = materials.add(StandardMaterial::from_color(
+        Color::linear_rgb(0.05, 0.05, 0.05)));
+    let grey = materials.add(StandardMaterial::from(
+        Color::linear_rgb(GREY, GREY, GREY)));
     let mut hip_entity = Entity::PLACEHOLDER;
     for leg_part in LegPart::ALL{
         let mesh = match leg_part {
@@ -208,8 +211,10 @@ pub fn spawn_body (
     meshes: &mut ResMut<Assets<Mesh>>,
     materials: &mut ResMut<Assets<StandardMaterial>>
 ) -> Entity {
-    let black = materials.add(StandardMaterial::from_color(Color::linear_rgb(0.05, 0.05, 0.05)));
-    let yellow = materials.add(StandardMaterial::from_color(Color::hsl(58.0, 1.0, 0.5)));
+    let black = materials.add(
+        StandardMaterial::from_color(Color::linear_rgb(0.05, 0.05, 0.05)));
+    let yellow = materials.add(
+        StandardMaterial::from_color(Color::hsl(58.0, 1.0, 0.5)));
     let body0_mesh = meshes.add(Cuboid::new(0.5, 0.5, 0.6));
     let body1_mesh = meshes.add(Cuboid::new(0.5, 0.4, 0.5));
     let body2_mesh = meshes.add(Cuboid::new(0.4, 0.4, 0.4));
@@ -262,7 +267,7 @@ pub fn spawn_body (
     );
     commands.spawn(
         (
-            Transform::default(),
+            Transform::from_xyz(0.0, 0.0, 0.1),
             Visibility::Inherited,
             ChildOf(body_1),
             Mesh3d(body_stripe_mesh_1),
@@ -335,4 +340,90 @@ pub fn animate_tail(
             transform.translation.z = TAIL_Z;
         };
     };
+}
+
+#[derive(Component, Copy, Clone, PartialEq, Eq)]
+pub struct Head{
+    i: u8
+}
+
+const NECK_X: f32 = 0.35;
+const SKULL_X: f32 = 0.65;
+
+pub fn spawn_neck_and_head(
+    body_1_entity: Entity,
+    commands: &mut Commands,
+    meshes: &mut ResMut<Assets<Mesh>>,
+    materials: &mut ResMut<Assets<StandardMaterial>>
+) {
+    let black = materials.add(
+        StandardMaterial::from_color(Color::linear_rgb(0.05, 0.05, 0.05)));
+    let yellow = materials.add(
+        StandardMaterial::from_color(Color::hsl(58.0, 1.0, 0.5)));
+    let grey = materials.add(
+        StandardMaterial::from(Color::linear_rgb(GREY, GREY, GREY)));
+    let neck0_mesh = meshes.add(
+        Cuboid::new(0.4, 0.4, 0.3));
+    let skull_mesh = meshes.add(
+        Cuboid::from_length(0.4));
+    let beak_mesh = meshes.add(
+        Cuboid::new(0.5, 0.4 + STRIPE_DEPTH * 2.0, 0.2));
+    let neck_stripe = meshes.add(
+        Cuboid::new(0.4 + STRIPE_DEPTH, 0.4 + STRIPE_DEPTH, 0.075));
+    let skull_stripe = meshes.add(
+        Cuboid::new(0.4 + STRIPE_DEPTH, 0.4 + STRIPE_DEPTH, 0.05));
+    let neck = commands.spawn(
+        (
+            Transform::from_xyz(NECK_X, 0.0, 0.1),
+            BodyPart,
+            Visibility::Inherited,
+            ChildOf(body_1_entity),
+            Mesh3d(neck0_mesh),
+            MeshMaterial3d(black.clone()),
+            Head{i: 0}
+        )
+    ).id();
+    let skull = commands.spawn(
+        (
+            Transform::from_xyz(SKULL_X, 0.0, 0.15),
+            BodyPart,
+            Visibility::Inherited,
+            ChildOf(body_1_entity),
+            Mesh3d(skull_mesh),
+            MeshMaterial3d(black.clone()),
+            Head{i: 1}
+        )
+    ).id();
+    let beak = commands.spawn(
+        (
+            Transform::from_xyz(0.3, 0.0, -0.1),
+            BodyPart,
+            Visibility::Inherited,
+            ChildOf(skull),
+            Mesh3d(beak_mesh),
+            MeshMaterial3d(grey.clone())
+        )
+    ).id();
+    commands.spawn(
+        (
+            Transform::default(),
+            BodyPart,
+            Visibility::Inherited,
+            ChildOf(neck),
+            Mesh3d(neck_stripe),
+            MeshMaterial3d(yellow.clone()),
+            NotShadowCaster
+        )
+    );
+    commands.spawn(
+        (
+            Transform::from_xyz(0.0, 0.0, -0.1),
+            BodyPart,
+            Visibility::Inherited,
+            ChildOf(skull),
+            Mesh3d(skull_stripe),
+            MeshMaterial3d(yellow.clone()),
+            NotShadowCaster
+        )
+    );
 }
