@@ -7,7 +7,6 @@ const PITCH_CONSTANT: f32 = SQRT_2 / 2.0;
 
 #[derive(Resource)]
 pub struct AnimationState {
-    pub start: f32,
     pub jumping: bool
 }
 
@@ -17,18 +16,14 @@ pub enum LegPart {
     LeftThigh,
     RightThigh,
     LeftShin,
-    RightShin,
-    LeftFoot,
-    RightFoot
+    RightShin
 } impl LegPart {
-    const ALL: [LegPart; 7] = [
+    const ALL: [LegPart; 5] = [
         Self::Hip,
         Self::LeftThigh,
         Self::RightThigh,
         Self::LeftShin,
         Self::RightShin,
-        Self::LeftFoot,
-        Self::RightFoot
     ];
 }
 
@@ -45,8 +40,7 @@ pub fn spawn_legs(
     let mut hip_entity = Entity::PLACEHOLDER;
     for leg_part in LegPart::ALL{
         let mesh = match leg_part {
-            LegPart::Hip | 
-            LegPart::LeftFoot | LegPart::RightFoot => {
+            LegPart::Hip => {
                 joint_mesh.clone()
             }
             _ => {
@@ -54,8 +48,7 @@ pub fn spawn_legs(
             }
         };
         let mat = match leg_part {
-            LegPart::Hip | LegPart::LeftThigh | 
-            LegPart::RightThigh |LegPart::LeftFoot | LegPart::RightFoot => {
+            LegPart::Hip | LegPart::LeftThigh | LegPart::RightThigh => {
                 black.clone()
             },
             _ => {
@@ -82,28 +75,45 @@ pub fn spawn_legs(
             hip_entity = joint_entity;
         };
     };
-    commands.insert_resource(AnimationState{start: 0.0, jumping: false});
+    commands.insert_resource(AnimationState{jumping: false});
     hip_entity
 }
 
 pub fn animate_legs(
     mut query: Query<(&mut Transform, &LegPart)>,
+    player_query: Query<&Player>,
     animation_state: Res<AnimationState>,
     time: Res<Time>,
     speed: Res<LevelSpeed>
 ) {
+    let leg_length = 1.2;
+    let step_height = 0.5;
+    let hip_splay = 0.25;
+    let bone_length = leg_length / 2.0;
     let (
         left_foot, right_foot, left_knee, right_knee, hip, left_hip, right_hip
     ) = if animation_state.jumping {
-        (Vec3::ZERO, Vec3::ZERO, Vec3::ZERO, Vec3::ZERO, Vec3::ZERO, Vec3::ZERO, Vec3::ZERO)
+        let v = player_query.single().unwrap().velocity;
+        let hip_height = leg_length;
+        let jump_normal = (v / JUMP_V).abs();
+        let foot_height = step_height - (jump_normal * step_height);
+        let hip = Vec3::new(0.2, 0.0, hip_height);
+        let mut left_hip = hip;
+        let mut right_hip = hip;
+        left_hip.y -= hip_splay;
+        right_hip.y += hip_splay;
+        let left_foot = Vec3::new(0.2, -hip_splay, foot_height);
+        let right_foot = Vec3::new(0.2, hip_splay, foot_height);
+        let left_knee = calculate_knee_pos(left_foot, left_hip, bone_length, leg_length);
+        let right_knee = calculate_knee_pos(right_foot, right_hip, bone_length, leg_length);
+        (left_foot, right_foot, left_knee, right_knee, hip, left_hip, right_hip)
+        // (Vec3::ZERO, Vec3::ZERO, Vec3::ZERO, Vec3::ZERO, Vec3::ZERO, Vec3::ZERO, Vec3::ZERO)
     } else {
         let step_distance = PITCH_CONSTANT;
-        let t = (time.elapsed_secs() - animation_state.start) * (speed.f32 / (step_distance * 2.0));
+        let t = time.elapsed_secs() * (speed.f32 / (step_distance * 2.0));
         let t1 = t % 2.0;
         let t2 = (t + 1.0) % 2.0;
         let step_height = 0.5;
-        let leg_length = 1.2;
-        let hip_splay = 0.25;
         let left_foot = calculate_foot_pos(t1, step_distance, step_height, -hip_splay);
         let right_foot = calculate_foot_pos(t2, step_distance, step_height, hip_splay);
         let mut hip = calculate_hip_pos(t, leg_length, step_distance);
@@ -134,9 +144,7 @@ pub fn animate_legs(
             LegPart::RightShin => {
                 transform.translation = (right_knee + right_foot) / 2.0;
                 transform.look_at(right_foot, Vec3::Z);
-            },
-            LegPart::LeftFoot => {transform.translation = left_foot;},
-            LegPart::RightFoot => {transform.translation = right_foot;}
+            }
         };
     };
 }
@@ -318,7 +326,7 @@ pub fn animate_tail(
         };
     } else {
         let step_distance = PITCH_CONSTANT;
-        let t = (time.elapsed_secs() - animation_state.start) * (speed.f32 / (step_distance * 2.0));
+        let t = time.elapsed_secs() * (speed.f32 / (step_distance * 2.0));
         let a = t * PI;
         let a_step = (PI * 2.0) / TAIL_LENGTH as f32;
         for (mut transform, segment) in &mut query {
