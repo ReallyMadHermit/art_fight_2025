@@ -221,7 +221,7 @@ pub fn spawn_body (
         Cuboid::new(0.4 + STRIPE_DEPTH, 0.4 + STRIPE_DEPTH, 0.1));
     let body_0 = commands.spawn(
         (
-            Transform::default(),
+            Transform::from_xyz(0.0, 0.0, 0.1),
             BodyPart,
             Visibility::Inherited,
             ChildOf(hip_entity),
@@ -231,7 +231,7 @@ pub fn spawn_body (
     ).id();
     let body_1 = commands.spawn(
         (
-            Transform::from_xyz(0.5, 0.0, 0.05),
+            Transform::from_xyz(0.5, 0.0, 0.15),
             BodyPart,
             Visibility::Inherited,
             ChildOf(hip_entity),
@@ -241,7 +241,7 @@ pub fn spawn_body (
     ).id();
     let body_2 = commands.spawn(
         (
-            Transform::from_xyz(-0.45, 0.0, 0.1),
+            Transform::from_xyz(-0.45, 0.0, 0.2),
             BodyPart,
             Visibility::Inherited,
             ChildOf(hip_entity),
