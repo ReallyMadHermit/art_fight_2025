@@ -10,7 +10,7 @@ impl Plugin for DinoRunPlugin {
         app.add_systems(Startup, spawn_camera);
         app.add_systems(Startup, spawn_debug_cube);
         app.add_systems(Startup, spawn_light);
-        app.add_systems(Startup, spawn_player_cube);
+        app.add_systems(Startup, spawn_player);
         app.add_systems(PreUpdate, player_jump_system);
         app.add_systems(Startup, insert_obstacle_resources);
         app.add_event::<SpawnObstacle>();
@@ -100,7 +100,7 @@ pub struct PlayerEntity {
     entity: Entity
 }
 
-fn spawn_player_cube(
+fn spawn_player(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
