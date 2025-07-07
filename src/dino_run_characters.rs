@@ -368,7 +368,8 @@ pub fn spawn_neck_and_head(
             unlit: true,
             ..default()
         });
-    let eye_mesh = meshes.add(Sphere::new(0.05));
+    let eye_mesh = meshes.add(
+        Cuboid::new(0.075, 0.425, 0.1));
     let grey = materials.add(
         StandardMaterial::from(Color::linear_rgb(GREY, GREY, GREY)));
     let neck0_mesh = meshes.add(
@@ -436,18 +437,15 @@ pub fn spawn_neck_and_head(
     );
     
     // eyes
-    let eye_y = 0.2f32;
-    for y in [eye_y, -eye_y] {
-        commands.spawn(
-            (
-                Transform::from_xyz(0.125, y, 0.1),
-                Visibility::Inherited,
-                ChildOf(skull),
-                Mesh3d(eye_mesh.clone()),
-                MeshMaterial3d(eye_color.clone()),
-                NotShadowCaster,
-                NotShadowReceiver
-            )
-        );
-    }
+    commands.spawn(
+        (
+            Transform::from_xyz(0.125, 0.0, 0.1),
+            Visibility::Inherited,
+            ChildOf(skull),
+            Mesh3d(eye_mesh.clone()),
+            MeshMaterial3d(eye_color.clone()),
+            NotShadowCaster,
+            NotShadowReceiver
+        )
+    );
 }
