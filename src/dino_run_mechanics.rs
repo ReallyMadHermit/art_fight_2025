@@ -27,6 +27,8 @@ impl Plugin for DinoRunPlugin {
         app.add_systems(Startup, spawn_cave_tunnel);
         app.add_systems(Startup, insert_crystal_stuff);
         app.add_systems(Update, (spawn_crystals, update_lights).chain());
+        app.insert_resource(HurtCounters{total_remaining: 0, flick: 0, should_show: true});
+        app.add_systems(FixedPreUpdate, hurt_manager);
     }
 }
 
@@ -291,7 +293,8 @@ fn update_obstacles (
     time: Res<Time>,
     speed: Res<LevelSpeed>,
     mut hit_writer: EventWriter<PlayerHit>,
-    mut score_writer: EventWriter<PlayerScores>
+    mut score_writer: EventWriter<PlayerScores>,
+    hurt_counters: Res<HurtCounters>
 ) {
     let dt = time.delta_secs();
     let motion = dt * speed.f32;
@@ -310,5 +313,45 @@ fn update_obstacles (
             println!("Score!!");
             score_writer.write(PlayerScores);
         };
+    };
+}
+
+#[derive(Resource)]
+struct HurtCounters {
+    total_remaining: u8,
+    flick: u8,
+    should_show: bool
+}
+
+const FLASH_DUR: u8 = 40;
+const FLICK_DUR: u8 = 4;
+
+fn hurt_manager(
+    mut vis_query: Query<&mut Visibility, With<Player>>,
+    mut hurt_counters: ResMut<HurtCounters>,
+    mut event_reader: EventReader<PlayerHit>
+) {
+    let mut v = vis_query.single_mut().unwrap();
+    let is_visible = match v.clone() {
+        Visibility::Visible => true,
+        _ => false
+    };
+    for _ in event_reader.read() {
+        hurt_counters.total_remaining = FLASH_DUR;
+    };
+    if hurt_counters.total_remaining > 0 {
+        if hurt_counters.flick == 0 {
+            hurt_counters.flick = FLICK_DUR;
+            hurt_counters.should_show = !hurt_counters.should_show;
+        } else if hurt_counters.flick > 0 {
+            hurt_counters.flick -= 1;
+            hurt_counters.total_remaining -= 1;
+        };
+    } else {
+        hurt_counters.should_show = true;
+        hurt_counters.flick = 0;
+    };
+    if is_visible != hurt_counters.should_show {
+        v.toggle_visible_hidden();
     };
 }
