@@ -32,22 +32,6 @@ impl Plugin for DinoRunPlugin {
     }
 }
 
-fn spawn_light(
-    mut commands: Commands
-) {
-    commands.spawn(
-        (
-            DirectionalLight {
-                illuminance: 5000.0,
-                color: Color::WHITE,
-                shadows_enabled: true,
-                ..default()
-            },
-            Transform::from_translation(Vec3::new(5.0, -5.0, 10.0)).looking_at(Vec3::ZERO, Vec3::Z)
-        )
-    );
-}
-
 #[derive(Component)]
 pub struct Player{
     pub velocity: f32
@@ -82,7 +66,7 @@ fn spawn_player(
         &mut meshes,
         &mut materials
     );
-    let neck = spawn_neck_and_head(
+    spawn_neck_and_head(
         body,
         &mut commands,
         &mut meshes,
@@ -293,8 +277,7 @@ fn update_obstacles (
     time: Res<Time>,
     speed: Res<LevelSpeed>,
     mut hit_writer: EventWriter<PlayerHit>,
-    mut score_writer: EventWriter<PlayerScores>,
-    hurt_counters: Res<HurtCounters>
+    mut score_writer: EventWriter<PlayerScores>
 ) {
     let dt = time.delta_secs();
     let motion = dt * speed.f32;
