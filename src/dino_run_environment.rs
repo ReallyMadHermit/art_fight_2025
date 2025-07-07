@@ -140,7 +140,7 @@ pub struct CrystalAssets {
 }
 const CRYSTAL_A_RANGE: f32 = PI + FRAC_PI_2;
 
-pub fn spawn_crystals(
+pub fn spawn_crystals(  // this shooouuuuld be event based, but I can't be bothered
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut crystal_timer: ResMut<CrystalTimer>,
