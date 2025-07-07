@@ -1,5 +1,4 @@
-use bevy::{core_pipeline::{bloom::Bloom, smaa::Smaa, tonemapping::Tonemapping}, prelude::*};
-use std::f32::consts::FRAC_PI_8;
+use bevy::prelude::*;
 use bevy::pbr::{NotShadowCaster, NotShadowReceiver};
 use bevy::render::view::NoFrustumCulling;
 use crate::common::MaterialWizard;
@@ -13,9 +12,6 @@ use fastrand::Rng;
 pub struct DinoRunPlugin;
 impl Plugin for DinoRunPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, spawn_camera);
-        // app.add_systems(Startup, spawn_debug_cube);
-        // app.add_systems(Startup, spawn_light);
         app.add_systems(Startup, spawn_player);
         app.add_systems(PreUpdate, player_jump_system);
         app.add_systems(Startup, insert_obstacle_resources);
@@ -32,12 +28,6 @@ impl Plugin for DinoRunPlugin {
         app.add_systems(Startup, insert_crystal_stuff);
         app.add_systems(Update, (spawn_crystals, update_lights).chain());
     }
-}
-
-fn spawn_camera(
-    mut commands: Commands
-) {
-
 }
 
 fn spawn_light(
@@ -247,7 +237,7 @@ fn obstacle_spawner(
     assets: Res<ObstacleAssets>,
     mut commands: Commands,
     mut obstacle_rng: ResMut<ObstacleRng>,
-    mut obstacle_query: Query<(&Transform, Entity), With<Obstacle>>
+    obstacle_query: Query<(&Transform, Entity), With<Obstacle>>
 ) {
     for event in event_reader.read() {
         let i = event.count as usize % COLOR_COUNT;
