@@ -201,7 +201,7 @@ pub struct TailSegment {
 }
 
 const TAIL_STEP: f32 = 0.25;
-const TAIL_LENGTH: usize = 8;
+const TAIL_LENGTH: usize = 12;
 const STRIPE_DEPTH: f32 = 1.0 / 64.0;
 const TAIL_Z: f32 = 0.15;
 
@@ -215,6 +215,8 @@ pub fn spawn_body (
         StandardMaterial::from_color(Color::linear_rgb(0.05, 0.05, 0.05)));
     let yellow = materials.add(
         StandardMaterial::from_color(Color::hsl(58.0, 1.0, 0.5)));
+    let red = materials.add(
+        StandardMaterial::from_color(Color::linear_rgb(1.0, 0.0, 0.0)));
     let body0_mesh = meshes.add(Cuboid::new(0.5, 0.5, 0.6));
     let body1_mesh = meshes.add(Cuboid::new(0.5, 0.4, 0.5));
     let body2_mesh = meshes.add(Cuboid::new(0.4, 0.4, 0.4));
@@ -285,6 +287,8 @@ pub fn spawn_body (
             NotShadowCaster
         )
     );
+    let heart_mesh = meshes.add(
+        Extrusion::new(RegularPolygon::new(0.065, 3), 0.3 + STRIPE_DEPTH * 2.0));
     let tail_stripe_mesh = meshes.add(Cuboid::new(
         TAIL_STEP + STRIPE_DEPTH, 0.3  + STRIPE_DEPTH, 0.05));
     let tail_mesh = meshes.add(Cuboid::new(TAIL_STEP, 0.3, 0.3));
@@ -292,7 +296,7 @@ pub fn spawn_body (
         let s = 1.0 - (i as f32 * 0.05);
         let seg = commands.spawn(
             (
-                Transform::from_xyz(-TAIL_STEP * i as f32 - 0.5, 0.0, TAIL_Z)
+                Transform::from_xyz(-TAIL_STEP * i as f32 - 0.75, 0.0, TAIL_Z)
                     .with_scale(Vec3::new(1.0, s, s)),
                 TailSegment{i: i as u8},
                 Visibility::Inherited,
@@ -310,6 +314,17 @@ pub fn spawn_body (
                 MeshMaterial3d(yellow.clone())
             )
         );
+        if i % 2 == 0 {
+            commands.spawn(
+                (
+                    Transform::from_xyz(0.0, 0.0, 0.1).with_rotation(Quat::from_rotation_x(-FRAC_PI_2)),
+                    Visibility::Inherited,
+                    ChildOf(seg),
+                    Mesh3d(heart_mesh.clone()),
+                    MeshMaterial3d(red.clone())
+                )
+            );
+        };
     };
 
     body_1
@@ -364,12 +379,12 @@ pub fn spawn_neck_and_head(
         StandardMaterial::from_color(Color::hsl(58.0, 1.5, 0.5)));
     let eye_color = materials.add(
         StandardMaterial{
-            base_color: Color::hsl(38.0, 1.0, 0.5),
+            base_color: Color::hsl(58.0, 1.0, 0.5),
             unlit: true,
             ..default()
         });
     let eye_mesh = meshes.add(
-        Cuboid::new(0.075, 0.425, 0.1));
+        Cuboid::new(0.075, 0.425, 0.05));
     let grey = materials.add(
         StandardMaterial::from(Color::linear_rgb(GREY, GREY, GREY)));
     let neck0_mesh = meshes.add(
@@ -437,13 +452,29 @@ pub fn spawn_neck_and_head(
     );
     
     // eyes
-    commands.spawn(
+    let eye = commands.spawn(
         (
-            Transform::from_xyz(0.125, 0.0, 0.1),
+            Transform::from_xyz(0.1, 0.0, 0.1),
             Visibility::Inherited,
             ChildOf(skull),
             Mesh3d(eye_mesh.clone()),
-            MeshMaterial3d(eye_color.clone()),
+            MeshMaterial3d(eye_color),
+            NotShadowCaster,
+            NotShadowReceiver
+        )
+    ).id();
+
+    let red = materials.add(
+        StandardMaterial::from_color(Color::linear_rgb(1.0, 0.0, 0.0)));
+    let heart_mesh = meshes.add(
+        Extrusion::new(RegularPolygon::new(0.1, 3), 0.4 + STRIPE_DEPTH));
+    commands.spawn(
+        (
+            Transform::from_rotation(Quat::from_rotation_x(-FRAC_PI_2)),
+            Visibility::Inherited,
+            ChildOf(eye),
+            Mesh3d(heart_mesh),
+            MeshMaterial3d(red),
             NotShadowCaster,
             NotShadowReceiver
         )
