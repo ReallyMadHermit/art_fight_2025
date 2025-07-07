@@ -71,7 +71,8 @@ pub fn spawn_legs(
                 Visibility::Inherited,
                 ChildOf(player),
                 Mesh3d(mesh),
-                MeshMaterial3d(mat)
+                MeshMaterial3d(mat),
+                NotShadowReceiver
             )
         ).id(); 
         if leg_part == LegPart::Hip {
@@ -404,7 +405,8 @@ pub fn spawn_neck_and_head(
             ChildOf(body_1_entity),
             Mesh3d(neck0_mesh),
             MeshMaterial3d(black.clone()),
-            Head{i: 0}
+            Head{i: 0},
+            NotShadowReceiver
         )
     ).id();
     let skull = commands.spawn(
@@ -414,7 +416,8 @@ pub fn spawn_neck_and_head(
             ChildOf(body_1_entity),
             Mesh3d(skull_mesh),
             MeshMaterial3d(black.clone()),
-            Head{i: 1}
+            Head{i: 1},
+            NotShadowReceiver
         )
     ).id();
     
@@ -425,7 +428,8 @@ pub fn spawn_neck_and_head(
             Visibility::Inherited,
             ChildOf(skull),
             Mesh3d(beak_mesh),
-            MeshMaterial3d(grey.clone())
+            MeshMaterial3d(grey.clone()),
+            NotShadowReceiver
         )
     );
     
@@ -437,7 +441,8 @@ pub fn spawn_neck_and_head(
             ChildOf(neck),
             Mesh3d(neck_stripe),
             MeshMaterial3d(yellow.clone()),
-            NotShadowCaster
+            NotShadowCaster,
+            NotShadowReceiver
         )
     );
     commands.spawn(
@@ -447,7 +452,8 @@ pub fn spawn_neck_and_head(
             ChildOf(skull),
             Mesh3d(skull_stripe),
             MeshMaterial3d(yellow.clone()),
-            NotShadowCaster
+            NotShadowCaster,
+            NotShadowReceiver
         )
     );
     

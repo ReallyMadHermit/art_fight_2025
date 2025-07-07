@@ -5,6 +5,7 @@ use bevy::core_pipeline::tonemapping::Tonemapping;
 use bevy::pbr::{NotShadowCaster, NotShadowReceiver};
 use bevy::prelude::*;
 use bevy::render::render_resource::Face;
+use bevy::render::view::NoFrustumCulling;
 use crate::dino_run_characters::PITCH_CONSTANT;
 use fastrand::Rng;
 use crate::common::MaterialWizard;
@@ -21,7 +22,7 @@ pub fn spawn_cave_tunnel(
 ) {
     let cyl_mat = materials.add(
         StandardMaterial {
-            base_color: Color::linear_rgb(0.5, 0.5, 0.5),
+            base_color: Color::linear_rgb(0.2, 0.2, 0.2),
             perceptual_roughness: 1.0,
             reflectance: 0.1,
             metallic: 0.2,
@@ -32,7 +33,7 @@ pub fn spawn_cave_tunnel(
     );
     let slab_mat = materials.add(
         StandardMaterial {
-            base_color: Color::linear_rgb(0.5, 0.5, 0.5),
+            base_color: Color::linear_rgb(0.2, 0.2, 0.2),
             perceptual_roughness: 1.0,
             reflectance: 0.1,
             metallic: 0.2,
@@ -116,7 +117,10 @@ pub fn insert_crystal_stuff(
     
     commands.insert_resource(CrystalAssets{wizard, hues});
     commands.insert_resource(CrystalTimer::new());
-    commands.insert_resource(AmbientLight {color: Color::WHITE, brightness: 50.0, ..default()});
+    commands.insert_resource(AmbientLight {
+        color: Color::WHITE, 
+        brightness: 50.0, 
+        ..default()});
 }
 
 #[derive(Resource)]
@@ -161,8 +165,8 @@ pub fn spawn_crystals(
         let hue = crystal_assets.hues[i];
         let light = PointLight {
             color: Color::hsl(hue, 1.0, 0.6),
-            intensity: 20000.0,
-            range: 10.0,
+            intensity: 24000.0,
+            range: 8.0,
             shadows_enabled: true,
             radius: crystal_length,
             shadow_map_near_z: crystal_length * 2.0,
@@ -176,7 +180,8 @@ pub fn spawn_crystals(
                 MeshMaterial3d(material),
                 light,
                 NotShadowReceiver,
-                NotShadowCaster
+                NotShadowCaster,
+                NoFrustumCulling
                 )
         );
     };
@@ -195,7 +200,7 @@ pub fn update_lights(
     let step = speed.f32 * dt;
     for (mut t, e) in &mut query {
         t.translation.x -= step;
-        if t.translation.x < -10.0 {
+        if t.translation.x < -7.0 {
             commands.entity(e).despawn()
         };
     };
