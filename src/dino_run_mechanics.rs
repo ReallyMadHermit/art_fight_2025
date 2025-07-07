@@ -1,6 +1,7 @@
 use bevy::{core_pipeline::{bloom::Bloom, smaa::Smaa, tonemapping::Tonemapping}, prelude::*};
 use std::f32::consts::FRAC_PI_8;
 use bevy::pbr::{NotShadowCaster, NotShadowReceiver};
+use bevy::render::view::NoFrustumCulling;
 use crate::common::MaterialWizard;
 use crate::event_exists;
 use crate::dino_run_characters::{
@@ -148,8 +149,9 @@ fn player_jump_system(
 
 #[derive(Resource)]
 struct ObstacleAssets {
-    cube_mesh: Handle<Mesh>,
-    wizard: MaterialWizard
+    hex_mesh: Handle<Mesh>,
+    wizard: MaterialWizard,
+    hues: Vec<f32>
 }
 
 #[derive(Resource)]
@@ -182,12 +184,23 @@ fn insert_obstacle_resources(
             lightness, alpha, color_count, 0.5, false,
         )
     };
-    let cube = meshes.add(
-        Cuboid::from_length(1.0)
+    let hues: Vec<f32> = {
+        let normals = MaterialWizard::generate_normal_hue_vec(COLOR_COUNT);
+        let mut hues: Vec<f32> = Vec::with_capacity(COLOR_COUNT);
+        for i in 0..COLOR_COUNT {
+            hues.push(normals[i] * 360.0);
+        };
+        hues
+    };
+    let hex = meshes.add(
+        Extrusion::new(
+            RegularPolygon::new(0.75, 6), 1.0
+        )
     );
     let obs_assets = ObstacleAssets {
-        cube_mesh: cube,
-        wizard
+        hex_mesh: hex,
+        wizard,
+        hues
     };
     commands.insert_resource(obs_assets);
     commands.insert_resource(ObstacleTimer{next: time.elapsed_secs() + 1.0, count: 0});
@@ -232,21 +245,33 @@ struct Obstacle {
 fn obstacle_spawner(
     mut event_reader: EventReader<SpawnObstacle>,
     assets: Res<ObstacleAssets>,
-    mut commands: Commands
+    mut commands: Commands,
+    mut obstacle_rng: ResMut<ObstacleRng>
 ) {
     for event in event_reader.read() {
+        let i = event.count as usize % COLOR_COUNT;
         commands.spawn(
             (
-                Transform::from_xyz(10.0, 0.0, 0.5),
-                Mesh3d(assets.cube_mesh.clone()),
-                MeshMaterial3d(assets.wizard.get_index((event.count as usize) % COLOR_COUNT)),
+                Transform::from_xyz(10.0, 0.0, 0.49).with_rotation(Quat::from_rotation_z(obstacle_rng.rng.f32())),
+                Mesh3d(assets.hex_mesh.clone()),
+                MeshMaterial3d(assets.wizard.get_index(i)),
                 Obstacle {
-                    radius: 0.5,
-                    height: 1.0,
+                    radius: 0.75,
+                    height: 1.25,
                     scored: false
                 },
                 NotShadowCaster,
-                NotShadowReceiver
+                NotShadowReceiver,
+                NoFrustumCulling,
+                PointLight {
+                    color: Color::hsl(assets.hues[i], 1.0, 0.6),
+                    intensity: 32000.0,
+                    range: 10.0,
+                    shadows_enabled: true,
+                    radius: 0.5,
+                    shadow_map_near_z: 1.0,
+                    ..default()
+                }
             )
         );
     };
