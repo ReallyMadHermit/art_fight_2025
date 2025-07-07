@@ -1,17 +1,20 @@
 use bevy::{core_pipeline::{bloom::Bloom, smaa::Smaa, tonemapping::Tonemapping}, prelude::*};
 use std::f32::consts::FRAC_PI_8;
+use bevy::pbr::{NotShadowCaster, NotShadowReceiver};
 use crate::common::MaterialWizard;
 use crate::event_exists;
 use crate::dino_run_characters::{
     spawn_legs, animate_legs, AnimationState, spawn_body, animate_tail, spawn_neck_and_head
 };
+use crate::dino_run_environment::{spawn_cave_tunnel, insert_crystal_stuff, spawn_crystals, update_lights};
+use fastrand::Rng;
 
 pub struct DinoRunPlugin;
 impl Plugin for DinoRunPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, spawn_camera);
-        app.add_systems(Startup, spawn_debug_cube);
-        app.add_systems(Startup, spawn_light);
+        // app.add_systems(Startup, spawn_debug_cube);
+        // app.add_systems(Startup, spawn_light);
         app.add_systems(Startup, spawn_player);
         app.add_systems(PreUpdate, player_jump_system);
         app.add_systems(Startup, insert_obstacle_resources);
@@ -24,33 +27,16 @@ impl Plugin for DinoRunPlugin {
         app.insert_resource(LevelSpeed {f32: 5.0});
         app.add_systems(Update, animate_legs);
         app.add_systems(Update, animate_tail);
+        app.add_systems(Startup, spawn_cave_tunnel);
+        app.add_systems(Startup, insert_crystal_stuff);
+        app.add_systems(Update, (spawn_crystals, update_lights).chain());
     }
 }
 
 fn spawn_camera(
     mut commands: Commands
 ) {
-    commands.spawn(
-        (
-            Camera3d::default(),
-            Camera {
-                hdr: true,
-                ..default()
-            },
-            Projection::Perspective(
-                PerspectiveProjection {
-                    fov: FRAC_PI_8,
-                    ..default()
-                }
-            ),
-            Transform::from_translation(Vec3::new(2.5, -20.0, 10.0))
-                .looking_at(Vec3::new(2.5, 0.0, 3.0), Vec3::Z),
-            Bloom::OLD_SCHOOL,
-            Tonemapping::AcesFitted,
-            Smaa::default(),
-            Msaa::Off
-        )
-    );
+
 }
 
 fn spawn_light(
@@ -66,29 +52,6 @@ fn spawn_light(
             },
             Transform::from_translation(Vec3::new(5.0, -5.0, 10.0)).looking_at(Vec3::ZERO, Vec3::Z)
         )
-    );
-}
-
-fn spawn_debug_cube(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-) {
-    let mat = materials.add(
-        StandardMaterial {
-            base_color: Color::WHITE,
-            ..default()
-        }
-    );
-    let mesh = meshes.add(
-        Cuboid::new(10.0, 10.0, 0.5)
-    );
-    commands.spawn(
-        (
-            Transform::from_xyz(2.5, 0.0, -0.25),
-            Mesh3d(mesh),
-            MeshMaterial3d(mat)
-            )
     );
 }
 
@@ -185,10 +148,13 @@ fn player_jump_system(
 
 #[derive(Resource)]
 struct ObstacleAssets {
-    hexagon_prism_mesh: Handle<Mesh>,
-    pentagon_prism_mesh: Handle<Mesh>,
     cube_mesh: Handle<Mesh>,
     wizard: MaterialWizard
+}
+
+#[derive(Resource)]
+struct ObstacleRng {
+    rng: Rng
 }
 
 const COLOR_COUNT: usize = 16;
@@ -213,32 +179,19 @@ fn insert_obstacle_resources(
         };
         MaterialWizard::new(
             &mut materials, crystal_mat, saturation,
-            lightness, alpha, color_count, 0.0, false,
+            lightness, alpha, color_count, 0.5, false,
         )
     };
-    let hex = meshes.add(
-        Extrusion::new(
-            RegularPolygon::new(0.5, 6),
-            1.0
-        )
-    );
-    let pen = meshes.add(
-        Extrusion::new(
-            RegularPolygon::new(0.5, 5),
-            1.0
-        )
-    );
     let cube = meshes.add(
         Cuboid::from_length(1.0)
     );
     let obs_assets = ObstacleAssets {
-        hexagon_prism_mesh: hex,
-        pentagon_prism_mesh: pen,
         cube_mesh: cube,
         wizard
     };
     commands.insert_resource(obs_assets);
     commands.insert_resource(ObstacleTimer{next: time.elapsed_secs() + 1.0, count: 0});
+    commands.insert_resource(ObstacleRng{rng: Rng::new()});
 }
 
 #[derive(Event)]
@@ -252,15 +205,19 @@ struct ObstacleTimer {
     count: u32
 }
 
+const OBSTACLE_DELAY: f32 = 2.0;
+
 fn obstacle_spawn_timing(
     time: Res<Time>,
     mut obstacle_timer: ResMut<ObstacleTimer>,
-    mut event_writer: EventWriter<SpawnObstacle>
+    mut event_writer: EventWriter<SpawnObstacle>,
+    mut obstacle_rng: ResMut<ObstacleRng>
 ) {
     let t = time.elapsed_secs();
     if t >= obstacle_timer.next {
         event_writer.write(SpawnObstacle{count: obstacle_timer.count});
-        obstacle_timer.next = t + 5.0;
+        let r = obstacle_rng.rng.f32() - 0.5;
+        obstacle_timer.next = t + OBSTACLE_DELAY + OBSTACLE_DELAY * r;
         obstacle_timer.count +=1;
     };
 }
@@ -287,7 +244,9 @@ fn obstacle_spawner(
                     radius: 0.5,
                     height: 1.0,
                     scored: false
-                }
+                },
+                NotShadowCaster,
+                NotShadowReceiver
             )
         );
     };

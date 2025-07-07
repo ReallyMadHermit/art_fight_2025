@@ -2,11 +2,11 @@ use bevy::prelude::*;
 
 mod common;
 
+mod dino_run_characters;
 mod dino_run_mechanics;
-
+mod dino_run_environment;
 use dino_run_mechanics::DinoRunPlugin;
 
-mod dino_run_characters;
 
 // MAIN
 fn main() {

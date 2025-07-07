@@ -3,7 +3,7 @@ use std::f32::consts::{SQRT_2, PI, FRAC_PI_2};
 use bevy::pbr::{NotShadowCaster, NotShadowReceiver};
 use crate::dino_run_mechanics::{LevelSpeed, Player, JUMP_V};
 
-const PITCH_CONSTANT: f32 = SQRT_2 / 2.0;
+pub const PITCH_CONSTANT: f32 = SQRT_2 / 2.0;
 const GREY: f32 = 0.4;
 
 #[derive(Resource)]
