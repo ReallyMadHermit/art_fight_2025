@@ -151,7 +151,7 @@ pub fn spawn_crystals(
     crystal_timer.last_x -= time.delta_secs() * speed.f32;
     while crystal_timer.last_x <= 15.0 {
         let randoms = [crystal_timer.rng.f32(); 5];
-        crystal_timer.last_x += randoms[0] * 0.5 + 1.0;
+        crystal_timer.last_x += randoms[0] * 0.5 + 1.5;
         let crystal_length = 0.5 + (randoms[2] - 0.5) * 0.2;
         let crystal_radius = 0.2 + (randoms[3] - 0.5) * 0.1;
         let a = -FRAC_PI_4 + CRYSTAL_A_RANGE * randoms[1];

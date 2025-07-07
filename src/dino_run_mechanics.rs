@@ -246,13 +246,14 @@ fn obstacle_spawner(
     mut event_reader: EventReader<SpawnObstacle>,
     assets: Res<ObstacleAssets>,
     mut commands: Commands,
-    mut obstacle_rng: ResMut<ObstacleRng>
+    mut obstacle_rng: ResMut<ObstacleRng>,
+    mut obstacle_query: Query<(&Transform, Entity), With<Obstacle>>
 ) {
     for event in event_reader.read() {
         let i = event.count as usize % COLOR_COUNT;
         commands.spawn(
             (
-                Transform::from_xyz(10.0, 0.0, 0.49).with_rotation(Quat::from_rotation_z(obstacle_rng.rng.f32())),
+                Transform::from_xyz(15.0, 0.0, 0.49).with_rotation(Quat::from_rotation_z(obstacle_rng.rng.f32())),
                 Mesh3d(assets.hex_mesh.clone()),
                 MeshMaterial3d(assets.wizard.get_index(i)),
                 Obstacle {
@@ -274,6 +275,11 @@ fn obstacle_spawner(
                 }
             )
         );
+    };
+    for (t, en) in obstacle_query {
+        if t.translation.x < -7.0 {
+            commands.entity(en).despawn()
+        };
     };
 }
 
