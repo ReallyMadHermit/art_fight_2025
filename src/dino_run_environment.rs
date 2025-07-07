@@ -119,7 +119,7 @@ pub fn insert_crystal_stuff(
     commands.insert_resource(CrystalTimer::new());
     commands.insert_resource(AmbientLight {
         color: Color::WHITE, 
-        brightness: 50.0, 
+        brightness: 80.0, 
         ..default()});
 }
 
