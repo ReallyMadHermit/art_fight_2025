@@ -99,7 +99,7 @@ pub fn insert_crystal_stuff(
         };
         hues
     };
-    
+
     let saturation = 1.0;
     let lightness = 0.5;
     let alpha = 0.5;
@@ -114,12 +114,12 @@ pub fn insert_crystal_stuff(
         &mut materials, mat, saturation,
         lightness, alpha, 32, 0.5, false,
     );
-    
+
     commands.insert_resource(CrystalAssets{wizard, hues});
     commands.insert_resource(CrystalTimer::new());
     commands.insert_resource(AmbientLight {
-        color: Color::WHITE, 
-        brightness: 80.0, 
+        color: Color::WHITE,
+        brightness: 80.0,
         ..default()});
 }
 
@@ -158,7 +158,7 @@ pub fn spawn_crystals(  // this shooouuuuld be event based, but I can't be bothe
         let x = crystal_timer.last_x;
         let y = a.cos() * (CAVE_RADIUS - crystal_length);
         let z = a.sin() * (CAVE_RADIUS - crystal_length) + CAVE_CENTER - 0.25;
-        let mesh = meshes.add(Extrusion::new(
+        let mesh = meshes.add(Extrusion::new(  // I've elected to pretend this isn't a memory leak
             RegularPolygon::new(crystal_radius, 6), crystal_length * 2.0));
         let i = (randoms[4] * 31.0).round() as usize;
         let material = crystal_assets.wizard.get_index(i);
