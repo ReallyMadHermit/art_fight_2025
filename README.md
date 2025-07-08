@@ -6,6 +6,8 @@ All "distro" .zip files contain the executable and any additional files (mostly 
 ## Chompless and The Crystal Cavern or "Dino Run"
 A runner game meant to loosely parody the offline dino runner playable in Google Chrome, there are 3 buttons and they all jump: W, Space, and Up Arrow. It's an easy enough game that scoring seemed irrelevant, but if you jump the obstacle, it makes a good noise, and if you don't, your dino is obviously harmed via a bad noise ahd a brief flickering period.
 
+Art Fight Page
+https://artfight.net/attack/10352685.chompless-and-the-crystal-cavern-playable-game
 
 Linux (or, arch):
 https://github.com/ReallyMadHermit/art_fight/blob/c1674f463678429a297a2d6e5ae92048760c2ff0/dino_run_linux_distro.zip
