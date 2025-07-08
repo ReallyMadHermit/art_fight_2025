@@ -7,7 +7,7 @@ use crate::dino_run_characters::{
     spawn_legs, animate_legs, AnimationState, spawn_body, animate_tail, spawn_neck_and_head
 };
 use crate::dino_run_environment::{spawn_cave_tunnel, insert_crystal_stuff, spawn_crystals, update_lights};
-use crate::dino_run_audio::setup_audio;
+use crate::dino_run_audio::{setup_audio, jump_audio, score_audio, hurt_audio};
 use fastrand::Rng;
 
 pub struct DinoRunPlugin;
@@ -20,7 +20,8 @@ impl Plugin for DinoRunPlugin {
         app.add_systems(FixedPreUpdate, obstacle_spawn_timing);
         app.add_systems(FixedPreUpdate, obstacle_spawner.after(obstacle_spawn_timing).run_if(event_exists!(SpawnObstacle)));
         app.add_systems(Update, update_obstacles);
-        app.add_event::<PlayerHit>();
+        app.add_event::<PlayerJumps>();
+        app.add_event::<PlayerHurt>();
         app.add_event::<PlayerScores>();
         app.insert_resource(LevelSpeed {f32: 5.0});
         app.add_systems(Update, animate_legs);
@@ -31,6 +32,9 @@ impl Plugin for DinoRunPlugin {
         app.insert_resource(HurtCounters{total_remaining: 0, flick: 0, should_show: true});
         app.add_systems(FixedPreUpdate, hurt_manager);
         app.add_systems(Startup, setup_audio);
+        app.add_systems(PostUpdate, jump_audio.run_if(event_exists!(PlayerJumps)));
+        app.add_systems(PostUpdate, score_audio.run_if(event_exists!(PlayerScores)));
+        app.add_systems(PostUpdate, hurt_audio.run_if(event_exists!(PlayerHurt)));
     }
 }
 
@@ -77,13 +81,17 @@ fn spawn_player(
     commands.insert_resource(PlayerEntity{entity: player});
 }
 
+#[derive(Event)]
+pub struct PlayerJumps;
+
 pub const JUMP_V: f32 = 10.0;
 
 fn player_jump_system(
     mut query: Query<(&mut Transform, &mut Player)>,
     keys: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
-    mut animation_state: ResMut<AnimationState>
+    mut animation_state: ResMut<AnimationState>,
+    mut event_writer: EventWriter<PlayerJumps>
 ) {
     // statics
     let dt = time.delta_secs();
@@ -102,6 +110,7 @@ fn player_jump_system(
         if t.translation.z < 0.25 && p.velocity <= 0.0 && jumped {
             p.velocity = JUMP_V;
             animation_state.jumping = true;
+            event_writer.write(PlayerJumps);
         };
         // gravity, hold to jump higher
         let float = held && p.velocity > 0.0;
@@ -262,10 +271,10 @@ fn obstacle_spawner(
 }
 
 #[derive(Event)]
-struct PlayerHit;
+pub struct PlayerHurt;
 
 #[derive(Event)]
-struct PlayerScores;
+pub struct PlayerScores;
 
 #[derive(Resource)]
 pub struct LevelSpeed {
@@ -278,7 +287,7 @@ fn update_obstacles (
     p_entity: Res<PlayerEntity>,
     time: Res<Time>,
     speed: Res<LevelSpeed>,
-    mut hit_writer: EventWriter<PlayerHit>,
+    mut hit_writer: EventWriter<PlayerHurt>,
     mut score_writer: EventWriter<PlayerScores>
 ) {
     let dt = time.delta_secs();
@@ -292,7 +301,7 @@ fn update_obstacles (
         } else if transform.translation.x.abs() < obstacle.radius && player_z < obstacle.height {
             println!("Hit!!");
             obstacle.scored = true;
-            hit_writer.write(PlayerHit);
+            hit_writer.write(PlayerHurt);
         } else if transform.translation.x < -0.0 {
             obstacle.scored = true;
             println!("Score!!");
@@ -314,7 +323,7 @@ const FLICK_DUR: u8 = 4;
 fn hurt_manager(
     mut vis_query: Query<&mut Visibility, With<Player>>,
     mut hurt_counters: ResMut<HurtCounters>,
-    mut event_reader: EventReader<PlayerHit>
+    mut event_reader: EventReader<PlayerHurt>
 ) {
     let mut v = vis_query.single_mut().unwrap();
     let is_visible = match v.clone() {
