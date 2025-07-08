@@ -7,6 +7,7 @@ use crate::dino_run_characters::{
     spawn_legs, animate_legs, AnimationState, spawn_body, animate_tail, spawn_neck_and_head
 };
 use crate::dino_run_environment::{spawn_cave_tunnel, insert_crystal_stuff, spawn_crystals, update_lights};
+use crate::dino_run_audio::setup_audio;
 use fastrand::Rng;
 
 pub struct DinoRunPlugin;
@@ -29,6 +30,7 @@ impl Plugin for DinoRunPlugin {
         app.add_systems(Update, (spawn_crystals, update_lights).chain());
         app.insert_resource(HurtCounters{total_remaining: 0, flick: 0, should_show: true});
         app.add_systems(FixedPreUpdate, hurt_manager);
+        app.add_systems(Startup, setup_audio);
     }
 }
 
