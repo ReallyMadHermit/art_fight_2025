@@ -1,6 +1,5 @@
 use std::f32::consts::{FRAC_PI_2, FRAC_PI_4, PI};
 use bevy::core_pipeline::bloom::Bloom;
-use bevy::core_pipeline::smaa::Smaa;
 use bevy::core_pipeline::tonemapping::Tonemapping;
 use bevy::pbr::{NotShadowCaster, NotShadowReceiver};
 use bevy::prelude::*;
@@ -81,8 +80,7 @@ pub fn spawn_cave_tunnel(
                 .looking_at(Vec3::new(1.2, 0.0, 1.75), Vec3::Z),
             Bloom::OLD_SCHOOL,
             Tonemapping::AcesFitted,
-            Smaa::default(),
-            Msaa::Off
+            Msaa::Sample4
         )
     );
 }
