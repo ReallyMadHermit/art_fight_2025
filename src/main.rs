@@ -4,7 +4,7 @@ use rodio::OutputStream;
 mod common;
 use common::AudioSystem;
 
-// mod dino_run;
+mod dino_run;
 // use dino_run::mechanics::DinoRunPlugin;
 
 mod spider_well;
