@@ -5,11 +5,10 @@ edition = "2024"
 
 [dependencies]
 bevy = { version = "0.16.1", default-features = false, features = [
-    "x11",
-    "bevy_winit",    # window/input handling
-    "bevy_render",   # core rendering
-    "bevy_pbr",
-    "async_executor"
+    "x11",  # needed cause linux
+    "bevy_winit",  # wind'oh
+    "bevy_render",  # rendering
+    "bevy_pbr",  # PBR
 ] }
 fastrand = "2.3.0"
 rodio = "0.20.1"
