@@ -6,14 +6,10 @@ edition = "2024"
 [dependencies]
 bevy = { version = "0.16.1", default-features = false, features = [
     "x11",
-    "bevy_window",
     "bevy_winit",    # window/input handling
     "bevy_render",   # core rendering
-    "bevy_asset",    # asset system for loading assets
-    "bevy_audio",    # only if you use audio, and then add "wav"
     "bevy_pbr",
-    "async_executor",
-    "wav"            # WAV support (only meaningful if bevy_audio is included)
+    "async_executor"
 ] }
 fastrand = "2.3.0"
 rodio = "0.20.1"
