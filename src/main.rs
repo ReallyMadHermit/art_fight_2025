@@ -4,8 +4,11 @@ use rodio::OutputStream;
 mod common;
 use common::AudioSystem;
 
-mod dino_run;
-use dino_run::mechanics::DinoRunPlugin;
+// mod dino_run;
+// use dino_run::mechanics::DinoRunPlugin;
+
+mod spider_well;
+use spider_well::SpiderWellPlugin;
 
 // MAIN
 fn main() {
@@ -14,6 +17,7 @@ fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .insert_resource(AudioSystem::new(handle))
-        .add_plugins(DinoRunPlugin)
+        // .add_plugins(DinoRunPlugin)
+        .add_plugins(SpiderWellPlugin)
         .run();
 }
