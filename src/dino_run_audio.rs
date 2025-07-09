@@ -1,17 +1,12 @@
 use bevy::prelude::*;
 use crate::dino_run_mechanics::{PlayerHurt, PlayerScores, PlayerJumps};
+use crate::audio_system::MyAudio;
 
-#[derive(Component)]
-struct HurtAudioMarker;
+const SOUND_TRACK: &[u8] = include_bytes!("dino_run_crystal.wav");
+const HURT: &[u8] = include_bytes!("hurt.wav");
+const JUMP: &[u8] = include_bytes!("jump.wav");
+const SCORE: &[u8] = include_bytes!("score.wav");
 
-#[derive(Component)]
-struct ScoreAudioMarker;
-
-#[derive(Component)]
-struct JumpAudioMarker;
-
-#[derive(Component)]
-struct MusicAudioMarker;
 
 #[derive(Resource)]
 pub struct DinoSounds{
@@ -22,12 +17,14 @@ pub struct DinoSounds{
 
 pub fn setup_audio(
     asset_server: Res<AssetServer>,
-    mut commands: Commands
+    mut commands: Commands,
+    my_audio: Res<MyAudio>
 ) {
-    commands.spawn((
-        AudioPlayer::new(asset_server.load("dino_sounds/dino_run_crystal.wav")),
-        PlaybackSettings::LOOP
-    ));
+    // commands.spawn((
+    //     AudioPlayer::new(asset_server.load("dino_sounds/dino_run_crystal.wav")),
+    //     PlaybackSettings::LOOP
+    // ));
+    my_audio.play_music(SOUND_TRACK);
     commands.insert_resource(
         DinoSounds {
             jump: asset_server.load("dino_sounds/jump.wav"),
