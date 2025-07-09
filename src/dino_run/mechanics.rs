@@ -3,11 +3,11 @@ use bevy::pbr::{NotShadowCaster, NotShadowReceiver};
 use bevy::render::view::NoFrustumCulling;
 use crate::common::MaterialWizard;
 use crate::event_exists;
-use crate::dino_run_characters::{
+use crate::dino_run::character::{
     spawn_legs, animate_legs, AnimationState, spawn_body, animate_tail, spawn_neck_and_head
 };
-use crate::dino_run_environment::{spawn_cave_tunnel, insert_crystal_stuff, spawn_crystals, update_lights};
-use crate::dino_run_audio::{setup_audio, jump_audio, score_audio, hurt_audio};
+use crate::dino_run::environment::{spawn_cave_tunnel, insert_crystal_stuff, spawn_crystals, update_lights};
+use crate::dino_run::audio::{setup_audio, jump_audio, score_audio, hurt_audio};
 use fastrand::Rng;
 
 pub struct DinoRunPlugin;

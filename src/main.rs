@@ -5,12 +5,8 @@ mod common;
 mod audio_system;
 use audio_system::MyAudio;
 
-mod dino_run_characters;
-mod dino_run_mechanics;
-mod dino_run_environment;
-mod dino_run_audio;
-use dino_run_mechanics::DinoRunPlugin;
-
+mod dino_run;
+use dino_run::mechanics::DinoRunPlugin;
 
 // MAIN
 fn main() {

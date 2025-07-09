@@ -5,10 +5,10 @@ use bevy::pbr::{NotShadowCaster, NotShadowReceiver};
 use bevy::prelude::*;
 use bevy::render::render_resource::Face;
 use bevy::render::view::NoFrustumCulling;
-use crate::dino_run_characters::PITCH_CONSTANT;
+use crate::dino_run::character::PITCH_CONSTANT;
 use fastrand::Rng;
 use crate::common::MaterialWizard;
-use crate::dino_run_mechanics::LevelSpeed;
+use crate::dino_run::mechanics::LevelSpeed;
 
 const CAVE_RADIUS: f32 = 3.0;
 const CAVE_LENGTH: f32 = 50.0;

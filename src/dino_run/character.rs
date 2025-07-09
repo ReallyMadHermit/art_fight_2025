@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use std::f32::consts::{SQRT_2, PI, FRAC_PI_2};
 use bevy::pbr::{NotShadowCaster, NotShadowReceiver};
-use crate::dino_run_mechanics::{LevelSpeed, Player, JUMP_V};
+use crate::dino_run::mechanics::{LevelSpeed, Player, JUMP_V};
 
 pub const PITCH_CONSTANT: f32 = SQRT_2 / 2.0;
 const GREY: f32 = 0.4;

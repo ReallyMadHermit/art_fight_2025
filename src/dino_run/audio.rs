@@ -1,11 +1,11 @@
 use bevy::prelude::*;
-use crate::dino_run_mechanics::{PlayerHurt, PlayerScores, PlayerJumps};
+use crate::dino_run::mechanics::{PlayerHurt, PlayerScores, PlayerJumps};
 use crate::audio_system::MyAudio;
 
-const SOUND_TRACK: &[u8] = include_bytes!("dino_run_crystal.wav");
-const HURT: &[u8] = include_bytes!("hurt.wav");
-const JUMP: &[u8] = include_bytes!("jump.wav");
-const SCORE: &[u8] = include_bytes!("score.wav");
+const SOUND_TRACK: &[u8] = include_bytes!("sound_files/crystal.wav");
+const HURT: &[u8] = include_bytes!("sound_files/hurt.wav");
+const JUMP: &[u8] = include_bytes!("sound_files/jump.wav");
+const SCORE: &[u8] = include_bytes!("sound_files/score.wav");
 
 pub fn setup_audio(
     my_audio: Res<MyAudio>
