@@ -16,18 +16,7 @@ pub struct POVCamera;
 
 pub fn debug_scene_setup(
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>
 ) {
-    // let mesh = meshes.add(Sphere::new(0.5));
-    // let material = materials.add(StandardMaterial::from_color(Color::WHITE));
-    // for n in [-1.0, 0.0, 2.0] {
-    //     commands.spawn((
-    //         Mesh3d(mesh.clone()),
-    //         MeshMaterial3d(material.clone()),
-    //         Transform::from_xyz(n, n, 0.0)
-    //     ));
-    // }
     commands.spawn(
         (
             Camera3d::default(),
