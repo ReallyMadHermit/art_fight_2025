@@ -3,11 +3,13 @@ use bevy::{core_pipeline::{bloom::Bloom, tonemapping::Tonemapping}, prelude::*, 
 
 const THREAD_LENGTH_START: f32 = 3.0;
 const PLAYER_RADIUS: f32 = 0.5;
-const LEVEL_WIDTH: f32 = 10.0;
-const GRAVITY: f32 = 0.8;
+const LEVEL_WIDTH: f32 = 20.0;
+const GRAVITY: f32 = 0.75;
+const LEAP_GRAVITY: f32 = 20.0;
 const PLAYER_LEAN: f32 = 0.05;
-const PLAYER_CLIMB: f32 = 1.0;
-const PLAYER_DRAG: f32 = 0.75;
+const PLAYER_CLIMB: f32 = 2.0;
+const PLAYER_DRAG: f32 = 0.10;
+const STATIC_DRAG: f32 = 1.0;
 
 #[derive(Component)]
 pub struct POVCamera;
@@ -80,7 +82,7 @@ pub fn insert_resources(
     mut commands: Commands,
 ) {
     commands.insert_resource(PlayerPos{vec: Vec2::ZERO});
-    commands.insert_resource(PlayerSwing{thread_length: THREAD_LENGTH_START, angle: 0.0, angular_velocity: 0.0});
+    commands.insert_resource(PlayerSwing{thread_length: THREAD_LENGTH_START, angle: 0.0, angular_v: 0.0});
     commands.insert_resource(StickingPoints{vec: {
         let mut v = Vec::with_capacity(10);
         v.push(Vec2::new(0.0, THREAD_LENGTH_START));
@@ -157,7 +159,7 @@ pub struct StickingPoints {
 pub struct PlayerSwing {
     thread_length: f32,
     angle: f32,
-    angular_velocity: f32
+    angular_v: f32
 }
 
 #[derive(Resource)]
@@ -186,9 +188,13 @@ pub fn move_player(
 
     // leaping logic
     if player_inputs.leaping {
-        player_velocity.vec.y -= GRAVITY * dt;
+        player_velocity.vec.y -= LEAP_GRAVITY * dt;
+        let d = player_velocity.vec * dt * PLAYER_DRAG;
+        player_velocity.vec -= d;
         player_pos.vec += player_velocity.vec * dt;
         player_swing.thread_length = player_pos.vec.distance(stuck);
+        let delta_vec = stuck - player_pos.vec;
+        player_swing.angle = -delta_vec.x.atan2(delta_vec.y);
         player_transform.translation = player_pos.vec.extend(0.0);
         return;
     };
@@ -196,42 +202,42 @@ pub fn move_player(
     // rope-crawl
     if player_inputs.y > 0 {
         let l = player_swing.thread_length - PLAYER_CLIMB * dt;
-        player_swing.angular_velocity *= player_swing.thread_length / l;
+        player_swing.angular_v *= player_swing.thread_length / l;
         player_swing.thread_length = l;
     } else if player_inputs.y < 0 {
         let l = player_swing.thread_length + PLAYER_CLIMB * dt;
-        player_swing.angular_velocity *= player_swing.thread_length / l;
+        player_swing.angular_v *= player_swing.thread_length / l;
         player_swing.thread_length = l;
     };
+
+    let circumference = TAU * player_swing.thread_length;
 
     // input handling
     let d = (PLAYER_LEAN * dt * player_swing.angle.cos()) / player_swing.thread_length;
     if player_inputs.x > 0 {
-        player_swing.angular_velocity -= d;
+        player_swing.angular_v -= d;
+        player_swing.angular_v -= player_swing.angular_v * dt * PLAYER_DRAG;
     } else if player_inputs.x < 0 {
-        player_swing.angular_velocity += d;
+        player_swing.angular_v += d;
+        player_swing.angular_v -= player_swing.angular_v * dt * PLAYER_DRAG;
     } else {
-        player_swing.angular_velocity -= player_swing.angular_velocity * dt * PLAYER_DRAG;
+        player_swing.angular_v -= player_swing.angular_v * dt * STATIC_DRAG;
     };
     
-    // apply gravity to velocity, then apply velocity
+    // apply gravity to velocity, then apply angular velocity
     let a_accel = -(GRAVITY / player_swing.thread_length) * player_swing.angle.sin() * dt;
-    player_swing.angular_velocity += a_accel;
-    player_swing.angle += player_swing.angular_velocity;
-    
-    // update velocity for flinging
-    let c = player_swing.thread_length * TAU;
-    let v = c * player_swing.angular_velocity;
-    player_velocity.vec = Vec2 {
-        x: v * player_swing.angle.cos(),
-        y: v * player_swing.angle.sin()
-    };
-    
-    // update positions
+    player_swing.angular_v += a_accel;
+    player_swing.angle += player_swing.angular_v;
+
+    // update position
     let offset = Vec2 {
         x: player_swing.angle.sin() * player_swing.thread_length,
         y: -player_swing.angle.cos() * player_swing.thread_length
     };
     player_pos.vec = stuck + offset;
+
+    // update velocity for flinging
+    player_velocity.vec = (player_pos.vec - player_transform.translation.xy()) / dt;
+
     player_transform.translation = player_pos.vec.extend(0.0);
 }
