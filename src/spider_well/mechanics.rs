@@ -238,6 +238,7 @@ pub fn move_player(
 
     // update velocity for flinging
     player_velocity.vec = (player_pos.vec - player_transform.translation.xy()) / dt;
-
+    
+    //update translation
     player_transform.translation = player_pos.vec.extend(0.0);
 }
