@@ -1,8 +1,9 @@
 use std::f32::consts::{FRAC_PI_2, TAU};
 use bevy::{core_pipeline::{bloom::Bloom, tonemapping::Tonemapping}, prelude::*, render::camera::ScalingMode};
+use crate::common::RectChecks;
 
 const THREAD_LENGTH_START: f32 = 3.0;
-const THREAD_RADIUS: f32 = 0.125;
+const THREAD_RADIUS: f32 = 0.06125;
 const STICKING_POINT_RADIUS: f32 = 0.2;
 const PLAYER_RADIUS: f32 = 0.5;
 const LEVEL_WIDTH: f32 = 20.0;
@@ -13,6 +14,9 @@ const PLAYER_CLIMB: f32 = 2.0;
 const PLAYER_DRAG: f32 = 0.10;
 const STATIC_DRAG: f32 = 1.0;
 const ASSUMED_STICKING_POINTS: usize = 10;
+const PLATFORM_THICKNESS: f32 = 0.125;
+const Y_CHECK_NARROWING: f32 = 0.25;
+const COLLISION_RADIUS: f32 = 0.125;
 
 #[derive(Component)]
 pub struct POVCamera;
@@ -33,7 +37,8 @@ pub fn debug_scene_setup(
                     ..OrthographicProjection::default_3d()
                 }
             ),
-            Transform::from_xyz(0.0, 0.0, -LEVEL_WIDTH).looking_at(Vec3::ZERO, Vec3::Y),
+            Transform::from_xyz(0.0, -3.0, LEVEL_WIDTH)
+                .looking_at(Vec3::new(0.0, -3.0, 0.0), Vec3::Y),
             Bloom::OLD_SCHOOL,
             Tonemapping::AcesFitted,
             Msaa::Sample4,
@@ -124,17 +129,17 @@ pub fn player_controls(
     for key in pressed {
         match key {
             KeyCode::KeyW => {y+=1; scheme=ControlScheme::Wasd;},
-            KeyCode::KeyA => {x-=1; scheme=ControlScheme::Wasd;},
+            KeyCode::KeyA => {x+=1; scheme=ControlScheme::Wasd;},
             KeyCode::KeyS => {y-=1; scheme=ControlScheme::Wasd;},
-            KeyCode::KeyD => {x+=1; scheme=ControlScheme::Wasd;},
+            KeyCode::KeyD => {x-=1; scheme=ControlScheme::Wasd;},
             KeyCode::ArrowUp => {y+=1; scheme=ControlScheme::Arrows;},
-            KeyCode::ArrowLeft => {x-=1; scheme=ControlScheme::Arrows;},
+            KeyCode::ArrowLeft => {x+=1; scheme=ControlScheme::Arrows;},
             KeyCode::ArrowDown => {y-=1; scheme=ControlScheme::Arrows;},
-            KeyCode::ArrowRight => {x+=1; scheme=ControlScheme::Arrows;},
+            KeyCode::ArrowRight => {x-=1; scheme=ControlScheme::Arrows;},
             KeyCode::Numpad8 => {y+=1; scheme=ControlScheme::Numpad;},
-            KeyCode::Numpad4 => {x-=1; scheme=ControlScheme::Numpad;},
+            KeyCode::Numpad4 => {x+=1; scheme=ControlScheme::Numpad;},
             KeyCode::Numpad5 => {y-=1; scheme=ControlScheme::Numpad;},
-            KeyCode::Numpad6 => {x+=1; scheme=ControlScheme::Numpad;},
+            KeyCode::Numpad6 => {x-=1; scheme=ControlScheme::Numpad;},
             KeyCode::Space => {leaping=true; break;},
             KeyCode::Numpad0 => {leaping=true; break;},
             KeyCode::Insert => {leaping=true; break;},
@@ -174,6 +179,7 @@ pub struct PlayerPos {
     vec: Vec2
 }
 
+// TODO: make the swings slower and less dramatic so they don't skip collisions
 pub fn move_player(
     player_inputs: Res<PlayerInputs>,
     time: Res<Time>,
@@ -190,15 +196,24 @@ pub fn move_player(
 
     // leaping logic
     if player_inputs.leaping {
+        // apply velocity
         player_velocity.vec.y -= LEAP_GRAVITY * dt;
         let d = player_velocity.vec * dt * PLAYER_DRAG;
         player_velocity.vec -= d;
         player_pos.vec += player_velocity.vec * dt;
+        player_transform.translation = player_pos.vec.extend(0.0);
+        // update player swing
         player_swing.thread_length = player_pos.vec.distance(stuck);
         let delta_vec = stuck - player_pos.vec;
         player_swing.angle = -delta_vec.x.atan2(delta_vec.y);
-        player_transform.translation = player_pos.vec.extend(0.0);
-        return;  // TODO: improve the way leaping velocity is added to swinging velocity
+        // update angular velocity
+        let acos = player_swing.angle.cos();
+        let asin = player_swing.angle.sin();
+        println!("acos, asin: {}, {}", acos, asin);
+        let xv_a = (player_velocity.vec.x * acos) / (player_swing.thread_length.powi(2) * TAU);
+        let yv_a = (player_velocity.vec.y * asin) / (player_swing.thread_length.powi(2) * TAU);
+        player_swing.angular_v = xv_a + yv_a;
+        return;
     };
 
     // rope-crawl
@@ -357,7 +372,7 @@ pub fn web_updater(
     player_thread: Res<PlayerThread>,
     player_pos: Res<PlayerPos>,
     player_swing: Res<PlayerSwing>,
-    update_threads: Res<UpdateStaticThreads>,
+    mut update_threads: ResMut<UpdateStaticThreads>,
     mut query: Query<&mut Transform, With<ThreadMarker>>
 ) {
     let mut player_thread_transform = query.get_mut(player_thread.entity).unwrap();
@@ -365,7 +380,141 @@ pub fn web_updater(
     player_thread_transform.translation = average_pos.extend(0.0);
     player_thread_transform.scale.y = player_swing.thread_length;
     player_thread_transform.rotation = Quat::from_rotation_z(player_swing.angle);
-    if update_threads.bool {
-        
+    if update_threads.bool {  // TODO: THIS IS UNTESTED
+        for (i, &thread_entity) in threads.vec.iter().enumerate() {
+            let pos_a = sticking_points.vec[i];
+            let pos_b = sticking_points.vec[i+1];
+            let pos = (pos_a + pos_b) / 2.0;
+            let a = pos_a.angle_to(pos_b);
+            let d = pos_a.distance(pos_b);
+            let mut thread_transform = query.get_mut(thread_entity).unwrap();
+            thread_transform.translation = pos.extend(0.0);
+            thread_transform.scale.y = d;
+            thread_transform.rotation = Quat::from_rotation_z(a);
+        };
+        update_threads.bool = false;
+    };
+}
+
+pub fn spawn_some_holes(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>
+) {
+    let left_mat = materials.add(StandardMaterial {
+        base_color: Color::linear_rgb(0.0, 0.0, 1.0),
+        ..default()
+    });
+    let right_mat = materials.add(StandardMaterial {
+        base_color: Color::linear_rgb(1.0, 0.0, 0.0),
+        ..default()
+    });
+    let holes = [
+        (0.0, -1.0, 4.0),
+        (2.0, -5.0, 4.0),
+        (-2.0, -9.0, 4.0)
+    ];
+    let x_max = (LEVEL_WIDTH / 2.0);
+    let x_min = -x_max;
+    for (x, y, w) in holes {
+        let left_edge = x - (w/2.0);
+        let right_edge = x + (w/2.0);
+        let left_center = (left_edge + x_min) / 2.0;
+        let right_center = (right_edge + x_max) / 2.0;
+        let left_length = (left_edge - x_min).abs();
+        let right_length = (right_edge - x_max).abs();
+        commands.spawn((
+            MeshMaterial3d(left_mat.clone()),
+            Mesh3d(meshes.add(Cuboid::new(left_length, PLATFORM_THICKNESS, 1.0))),
+            Transform::from_xyz(left_center, y, 0.0),
+            CollisionPoint::new(left_edge, y)
+        ));
+        commands.spawn((
+            MeshMaterial3d(right_mat.clone()),
+            Mesh3d(meshes.add(Cuboid::new(right_length, PLATFORM_THICKNESS, 1.0))),
+            Transform::from_xyz(right_center, y, 0.0),
+            CollisionPoint::new(right_edge, y)
+        ));
+    };
+}
+
+pub fn spawn_a_collision(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>
+) {
+    let mesh = meshes.add(Cuboid::from_length(0.125));
+    let mat = materials.add(
+        StandardMaterial::from_color(Color::linear_rgb(1.0, 0.0, 0.0)));
+    let pairs = [
+        (2.0, -4.0),
+        (-1.0, -8.0)
+    ];
+    for (x, y) in pairs {
+        commands.spawn((
+            Mesh3d(mesh.clone()),
+            MeshMaterial3d(mat.clone()),
+            CollisionPoint::new(x, y),
+            Transform::from_xyz(x, y, 0.0)
+        ));
+    };
+}
+
+#[derive(Component)]
+pub struct CollisionPoint {
+    x: f32,
+    y: f32,
+} impl CollisionPoint {
+    pub fn new(x: f32, y: f32) -> Self {
+        Self {x, y}
+    }
+    pub fn as_vec(&self) -> Vec2 {
+        Vec2 {
+            x: self.x,
+            y: self.y
+        }
+    }
+}
+
+pub fn web_collision_test(
+    mut sticking_points: ResMut<StickingPoints>,
+    player_pos: Res<PlayerPos>,
+    mut player_swing: ResMut<PlayerSwing>,
+    collisions_points: Query<&CollisionPoint>
+) {
+    let player_xy = player_pos.vec;
+    let sticking_xy = sticking_points.vec.last().unwrap().clone();
+    let mut radius_xy = RectChecks::get_radi(player_xy, sticking_xy, 0.0);
+    radius_xy.y -= Y_CHECK_NARROWING;
+    let center_xy = RectChecks::get_rect_center(player_xy, sticking_xy);
+    let a = player_swing.angle + FRAC_PI_2;
+    let mut acos = 0.0;
+    let mut asin = 0.0;
+    let mut unsigned = true;
+    for collision_point in collisions_points {
+        let point = collision_point.as_vec();
+        if !RectChecks::is_inside_y_first(radius_xy, center_xy, point) {
+            continue;
+        };
+        println!("hit!");
+        if unsigned {
+            acos = a.cos();
+            asin = a.sin();
+            unsigned = false;
+        };
+        let dx = point.x - player_xy.x;
+        let dy = point.y - player_xy.y;
+        let xd = dx / acos;
+        let yd = dy / asin;
+        let dd = (xd - yd).abs();
+        println!("{}", a);
+        println!("xd, yd, dd: {}, {}, {}", xd, yd, dd);
+        if dd > THREAD_RADIUS + COLLISION_RADIUS {
+            continue;
+        };
+        let ad = (xd + yd) / 2.0;
+        sticking_points.vec.push(point);
+        player_swing.angular_v *= player_swing.thread_length / ad;
+        player_swing.thread_length = ad;
     };
 }

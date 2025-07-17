@@ -3,7 +3,7 @@ pub mod mechanics;
 
 use mechanics::{
     debug_scene_setup, spawn_player, insert_simple_resources, player_controls, move_player,
-    insert_webbing_assets, web_spawner, web_updater
+    insert_webbing_assets, web_spawner, web_updater, spawn_some_holes, web_collision_test
 };
 
 pub struct SpiderWellPlugin;
@@ -17,5 +17,7 @@ impl Plugin for SpiderWellPlugin {
         app.add_systems(Update, move_player);
         app.add_systems(PreUpdate, web_spawner);
         app.add_systems(Update, web_updater);
+        app.add_systems(Startup, spawn_some_holes);
+        app.add_systems(PostUpdate, web_collision_test);
     }
 }

@@ -113,3 +113,29 @@ pub struct AudioSystem {
         self.music_sink.append(source);
     }
 }
+
+pub struct RectChecks;
+impl RectChecks {
+
+    pub fn get_radi(corner_a: Vec2, corner_b: Vec2, radius_mod: f32) -> Vec2 {
+        let mut radius = (corner_a - corner_b).abs() / 2.0;
+        radius += radius_mod;
+        radius.max(Vec2::ZERO)
+    }
+
+    pub fn get_rect_center(corner_a: Vec2, corner_b: Vec2) -> Vec2 {
+        let center = (corner_a + corner_b) / 2.0;
+        center
+    }
+
+    pub fn is_inside_y_first(xy_radius: Vec2, center: Vec2, point: Vec2) -> bool {
+        let d = (point - center).abs();
+        d.y <= xy_radius.y && d.x <= xy_radius.x
+    }
+
+    pub fn is_inside_x_first(xy_radius: Vec2, center: Vec2, point: Vec2) -> bool {
+        let d = (point - center).abs();
+        d.x <= xy_radius.x && d.y <= xy_radius.y
+    }
+
+}
