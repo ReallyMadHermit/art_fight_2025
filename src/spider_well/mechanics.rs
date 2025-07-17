@@ -1,6 +1,5 @@
-use std::f32::consts::{FRAC_PI_2, TAU};
+use std::f32::consts::TAU;
 use bevy::{core_pipeline::{bloom::Bloom, tonemapping::Tonemapping}, prelude::*, render::camera::ScalingMode};
-use crate::common::RectChecks;
 
 const THREAD_LENGTH_START: f32 = 3.0;
 const THREAD_RADIUS: f32 = 0.06125;
@@ -13,11 +12,9 @@ const PLAYER_LEAN: f32 = 0.05;
 const PLAYER_CLIMB: f32 = 2.0;
 const PLAYER_DRAG: f32 = 0.10;
 const STATIC_DRAG: f32 = 1.0;
-const ASSUMED_STICKING_POINTS: usize = 10;
 const PLATFORM_THICKNESS: f32 = 0.125;
-const Y_CHECK_NARROWING: f32 = 0.25;
-const COLLISION_RADIUS: f32 = 0.125;
 const CAMERA_RATE: f32 = 3.0;
+const HANG_POINT: Vec2 = Vec2{ x: 0.0, y: THREAD_LENGTH_START};
 
 pub fn debug_scene_setup(
     mut commands: Commands,
@@ -54,13 +51,11 @@ pub fn debug_scene_setup(
 pub struct POVCamera;
 
 pub fn camera_mover(
-    sticking_points: Res<StickingPoints>,
     player_swing: Res<PlayerSwing>,
     mut camera_query: Query<&mut Transform, With<POVCamera>>,
     time: Res<Time>
 ) {
-    let last = sticking_points.vec.last().unwrap();
-    let y = last.y - player_swing.thread_length;
+    let y = HANG_POINT.y - player_swing.thread_length;
     let mut camera_transform = camera_query.single_mut().unwrap();
     let delta = y - camera_transform.translation.y;
     camera_transform.translation.y += delta * time.delta_secs() * CAMERA_RATE;
@@ -87,13 +82,12 @@ pub fn spawn_player(
         Transform::default(),
         PlayerMarker
     ));
-    let thread = commands.spawn((
+    commands.spawn((
         Mesh3d(webbing_assets.thread_mesh.clone()),
         MeshMaterial3d(webbing_assets.material.clone()),
         Transform::default(),
         ThreadMarker
-    )).id();
-    commands.insert_resource(PlayerThread{entity: thread});
+    ));
 }
 
 pub fn insert_simple_resources(
@@ -101,18 +95,10 @@ pub fn insert_simple_resources(
 ) {
     commands.insert_resource(PlayerPos{vec: Vec2::ZERO});
     commands.insert_resource(PlayerSwing{thread_length: THREAD_LENGTH_START, angle: 0.0, angular_v: 0.0});
-    commands.insert_resource(StickingPoints{vec: {
-        let mut v = Vec::with_capacity(ASSUMED_STICKING_POINTS);
-        v.push(Vec2::new(0.0, THREAD_LENGTH_START));
-        v
-    }});
-    commands.insert_resource(StickingSpheres{vec: Vec::with_capacity(ASSUMED_STICKING_POINTS)});
-    commands.insert_resource(StickingThreads{vec: Vec::with_capacity(ASSUMED_STICKING_POINTS-1)});
     commands.insert_resource(PlayerInputs{
         x: 0, y: 0, leaping: false, scheme: ControlScheme::Wasd
     });
     commands.insert_resource(PlayerVelocity {vec: Vec2::ZERO});
-    commands.insert_resource(UpdateStaticThreads{bool: true});
 }
 
 #[derive(Eq, PartialEq, Copy, Clone)]
@@ -172,11 +158,6 @@ pub fn player_controls(
 }
 
 #[derive(Resource)]
-pub struct StickingPoints {
-    vec: Vec<Vec2>
-}
-
-#[derive(Resource)]
 pub struct PlayerSwing {
     thread_length: f32,
     angle: f32,
@@ -197,7 +178,6 @@ pub struct PlayerPos {
 pub fn move_player(
     player_inputs: Res<PlayerInputs>,
     time: Res<Time>,
-    sticking_points: Res<StickingPoints>,
     mut player_swing: ResMut<PlayerSwing>,
     mut player_velocity: ResMut<PlayerVelocity>,
     mut player_pos: ResMut<PlayerPos>,
@@ -206,7 +186,6 @@ pub fn move_player(
     // resource variables
     let dt = time.delta_secs();
     let player_transform = &mut query.single_mut().unwrap();
-    let &stuck = sticking_points.vec.last().unwrap();
 
     // leaping logic
     if player_inputs.leaping {
@@ -217,13 +196,12 @@ pub fn move_player(
         player_pos.vec += player_velocity.vec * dt;
         player_transform.translation = player_pos.vec.extend(0.0);
         // update player swing
-        player_swing.thread_length = player_pos.vec.distance(stuck);
-        let delta_vec = stuck - player_pos.vec;
+        player_swing.thread_length = player_pos.vec.distance(HANG_POINT);
+        let delta_vec = HANG_POINT - player_pos.vec;
         player_swing.angle = -delta_vec.x.atan2(delta_vec.y);
         // update angular velocity
         let acos = player_swing.angle.cos();
         let asin = player_swing.angle.sin();
-        println!("acos, asin: {}, {}", acos, asin);
         let xv_a = (player_velocity.vec.x * acos) / (player_swing.thread_length.powi(2) * TAU);
         let yv_a = (player_velocity.vec.y * asin) / (player_swing.thread_length.powi(2) * TAU);
         player_swing.angular_v = xv_a + yv_a;
@@ -240,8 +218,6 @@ pub fn move_player(
         player_swing.angular_v *= player_swing.thread_length / l;
         player_swing.thread_length = l;
     };
-
-    let circumference = TAU * player_swing.thread_length;
 
     // input handling
     let d = (PLAYER_LEAN * dt * player_swing.angle.cos()) / player_swing.thread_length;
@@ -265,7 +241,7 @@ pub fn move_player(
         x: player_swing.angle.sin() * player_swing.thread_length,
         y: -player_swing.angle.cos() * player_swing.thread_length
     };
-    player_pos.vec = stuck + offset;
+    player_pos.vec = HANG_POINT + offset;
 
     // update velocity for flinging
     player_velocity.vec = (player_pos.vec - player_transform.translation.xy()) / dt;
@@ -278,12 +254,12 @@ pub fn move_player(
 pub struct WebbingAssets {
     material: Handle<StandardMaterial>,
     thread_mesh: Handle<Mesh>,
-    sticky_mesh: Handle<Mesh>
+    sphere_mesh: Handle<Mesh>
 } impl WebbingAssets {
     pub fn new(
-        material: Handle<StandardMaterial>, thread_mesh: Handle<Mesh>, sticky_mesh: Handle<Mesh>
+        material: Handle<StandardMaterial>, thread_mesh: Handle<Mesh>, sphere_mesh: Handle<Mesh>
     ) -> Self {
-        Self {material, thread_mesh, sticky_mesh}
+        Self {material, thread_mesh, sphere_mesh }
     }
     pub fn get_material(&self) -> Handle<StandardMaterial> {
         self.material.clone()
@@ -291,7 +267,7 @@ pub struct WebbingAssets {
     pub fn get_thread(&self) -> Handle<Mesh> {
         self.thread_mesh.clone()
     }
-    pub fn get_sticky(&self) -> Handle<Mesh> {
+    pub fn get_sphere(&self) -> Handle<Mesh> {
         self.thread_mesh.clone()
     }
 }
@@ -316,98 +292,19 @@ pub fn insert_webbing_assets(
     commands.insert_resource(WebbingAssets::new(material, thread_mesh, sticky_mesh));
 }
 
-#[derive(Resource)]
-pub struct StickingSpheres {
-    vec: Vec<Entity>
-}
-
-#[derive(Resource)]
-pub struct StickingThreads {
-    vec: Vec<Entity>
-}
-
 #[derive(Component)]
 pub struct ThreadMarker;
 
-#[derive(Component)]
-pub struct StickingPointMarker;
-
-pub fn web_spawner(
-    sticking_points: Res<StickingPoints>,
-    webbing_assets: Res<WebbingAssets>,
-    mut commands: Commands,
-    mut sticking_spheres: ResMut<StickingSpheres>,
-    mut sticking_threads: ResMut<StickingThreads>,
-    mut update_threads: ResMut<UpdateStaticThreads>
-) {
-    while sticking_points.vec.len() > sticking_spheres.vec.len() {
-        let i = sticking_spheres.vec.len();
-        let point = sticking_points.vec[i];
-        let entity = commands.spawn((
-            Mesh3d(webbing_assets.sticky_mesh.clone()),
-            MeshMaterial3d(webbing_assets.material.clone()),
-            Transform::from_translation(point.extend(0.0)),
-            StickingPointMarker
-        )).id();
-        sticking_spheres.vec.push(entity);
-        if sticking_spheres.vec.len() > 1 {
-            let entity = commands.spawn((
-                Mesh3d(webbing_assets.thread_mesh.clone()),
-                MeshMaterial3d(webbing_assets.material.clone()),
-                Transform::default(),
-                ThreadMarker
-            )).id();
-            sticking_threads.vec.push(entity);
-            update_threads.bool = true;
-        };
-    };
-    while sticking_points.vec.len() < sticking_spheres.vec.len() {
-        let entity = sticking_spheres.vec.pop().unwrap();
-        commands.entity(entity).despawn();
-        let entity = sticking_threads.vec.pop().unwrap();
-        commands.entity(entity).despawn();
-        update_threads.bool = true;
-    };
-}
-
-#[derive(Resource)]
-pub struct UpdateStaticThreads {
-    bool: bool
-}
-
-#[derive(Resource)]
-pub struct PlayerThread {
-    entity: Entity
-}
-
 pub fn web_updater(
-    sticking_points: Res<StickingPoints>,
-    threads: Res<StickingThreads>,
-    player_thread: Res<PlayerThread>,
     player_pos: Res<PlayerPos>,
     player_swing: Res<PlayerSwing>,
-    mut update_threads: ResMut<UpdateStaticThreads>,
     mut query: Query<&mut Transform, With<ThreadMarker>>
 ) {
-    let mut player_thread_transform = query.get_mut(player_thread.entity).unwrap();
-    let average_pos = (player_pos.vec + sticking_points.vec.last().unwrap()) / 2.0;
+    let mut player_thread_transform = query.single_mut().unwrap();
+    let average_pos = (player_pos.vec + HANG_POINT) / 2.0;
     player_thread_transform.translation = average_pos.extend(0.0);
     player_thread_transform.scale.y = player_swing.thread_length;
     player_thread_transform.rotation = Quat::from_rotation_z(player_swing.angle);
-    if update_threads.bool {  // TODO: THIS IS UNTESTED
-        for (i, &thread_entity) in threads.vec.iter().enumerate() {
-            let pos_a = sticking_points.vec[i];
-            let pos_b = sticking_points.vec[i+1];
-            let pos = (pos_a + pos_b) / 2.0;
-            let a = pos_a.angle_to(pos_b);
-            let d = pos_a.distance(pos_b);
-            let mut thread_transform = query.get_mut(thread_entity).unwrap();
-            thread_transform.translation = pos.extend(0.0);
-            thread_transform.scale.y = d;
-            thread_transform.rotation = Quat::from_rotation_z(a);
-        };
-        update_threads.bool = false;
-    };
 }
 
 pub fn spawn_some_holes(
@@ -440,95 +337,12 @@ pub fn spawn_some_holes(
         commands.spawn((
             MeshMaterial3d(left_mat.clone()),
             Mesh3d(meshes.add(Cuboid::new(left_length, PLATFORM_THICKNESS, 1.0))),
-            Transform::from_xyz(left_center, y, 0.0),
-            CollisionPoint::new(left_edge, y)
+            Transform::from_xyz(left_center, y, 0.0)
         ));
         commands.spawn((
             MeshMaterial3d(right_mat.clone()),
             Mesh3d(meshes.add(Cuboid::new(right_length, PLATFORM_THICKNESS, 1.0))),
-            Transform::from_xyz(right_center, y, 0.0),
-            CollisionPoint::new(right_edge, y)
+            Transform::from_xyz(right_center, y, 0.0)
         ));
-    };
-}
-
-pub fn spawn_a_collision(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>
-) {
-    let mesh = meshes.add(Cuboid::from_length(0.125));
-    let mat = materials.add(
-        StandardMaterial::from_color(Color::linear_rgb(1.0, 0.0, 0.0)));
-    let pairs = [
-        (2.0, -4.0),
-        (-1.0, -8.0)
-    ];
-    for (x, y) in pairs {
-        commands.spawn((
-            Mesh3d(mesh.clone()),
-            MeshMaterial3d(mat.clone()),
-            CollisionPoint::new(x, y),
-            Transform::from_xyz(x, y, 0.0)
-        ));
-    };
-}
-
-#[derive(Component)]
-pub struct CollisionPoint {
-    x: f32,
-    y: f32,
-} impl CollisionPoint {
-    pub fn new(x: f32, y: f32) -> Self {
-        Self {x, y}
-    }
-    pub fn as_vec(&self) -> Vec2 {
-        Vec2 {
-            x: self.x,
-            y: self.y
-        }
-    }
-}
-
-pub fn web_collision_test(
-    mut sticking_points: ResMut<StickingPoints>,
-    player_pos: Res<PlayerPos>,
-    mut player_swing: ResMut<PlayerSwing>,
-    collisions_points: Query<&CollisionPoint>
-) {
-    let player_xy = player_pos.vec;
-    let sticking_xy = sticking_points.vec.last().unwrap().clone();
-    let mut radius_xy = RectChecks::get_radi(player_xy, sticking_xy, 0.0);
-    radius_xy.y -= Y_CHECK_NARROWING;
-    let center_xy = RectChecks::get_rect_center(player_xy, sticking_xy);
-    let a = player_swing.angle + FRAC_PI_2;
-    let mut acos = 0.0;
-    let mut asin = 0.0;
-    let mut unsigned = true;
-    for collision_point in collisions_points {
-        let point = collision_point.as_vec();
-        if !RectChecks::is_inside_y_first(radius_xy, center_xy, point) {
-            continue;
-        };
-        println!("hit!");
-        if unsigned {
-            acos = a.cos();
-            asin = a.sin();
-            unsigned = false;
-        };
-        let dx = point.x - player_xy.x;
-        let dy = point.y - player_xy.y;
-        let xd = dx / acos;
-        let yd = dy / asin;
-        let dd = (xd - yd).abs();
-        println!("{}", a);
-        println!("xd, yd, dd: {}, {}, {}", xd, yd, dd);
-        if dd > THREAD_RADIUS + COLLISION_RADIUS {
-            continue;
-        };
-        let ad = (xd + yd) / 2.0;
-        sticking_points.vec.push(point);
-        player_swing.angular_v *= player_swing.thread_length / ad;
-        player_swing.thread_length = ad;
     };
 }
