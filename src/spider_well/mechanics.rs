@@ -17,9 +17,7 @@ const ASSUMED_STICKING_POINTS: usize = 10;
 const PLATFORM_THICKNESS: f32 = 0.125;
 const Y_CHECK_NARROWING: f32 = 0.25;
 const COLLISION_RADIUS: f32 = 0.125;
-
-#[derive(Component)]
-pub struct POVCamera;
+const CAMERA_RATE: f32 = 3.0;
 
 pub fn debug_scene_setup(
     mut commands: Commands,
@@ -50,6 +48,22 @@ pub fn debug_scene_setup(
         brightness: 1000.0,
         ..default()
     });
+}
+
+#[derive(Component)]
+pub struct POVCamera;
+
+pub fn camera_mover(
+    sticking_points: Res<StickingPoints>,
+    player_swing: Res<PlayerSwing>,
+    mut camera_query: Query<&mut Transform, With<POVCamera>>,
+    time: Res<Time>
+) {
+    let last = sticking_points.vec.last().unwrap();
+    let y = last.y - player_swing.thread_length;
+    let mut camera_transform = camera_query.single_mut().unwrap();
+    let delta = y - camera_transform.translation.y;
+    camera_transform.translation.y += delta * time.delta_secs() * CAMERA_RATE;
 }
 
 #[derive(Component)]
