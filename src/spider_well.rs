@@ -1,15 +1,17 @@
 use bevy::prelude::*;
 pub mod mechanics;
-
 use mechanics::{
     debug_scene_setup, spawn_player, insert_simple_resources, player_controls, move_player,
     insert_webbing_assets, web_updater, spawn_some_holes, camera_mover, CollisionEvent,
     collision_rect_checker, spawn_some_obstacles, move_obstacles
 };
 
+pub mod level_layout;
+
 pub struct SpiderWellPlugin;
 impl Plugin for SpiderWellPlugin {
     fn build(&self, app: &mut App) {
+        // mechanics
         app.add_systems(Startup, debug_scene_setup);
         app.add_systems(Startup, insert_simple_resources);
         app.add_systems(Startup, insert_webbing_assets);
@@ -23,5 +25,7 @@ impl Plugin for SpiderWellPlugin {
         app.add_systems(Update, collision_rect_checker.after(move_player));
         app.add_systems(Update, move_obstacles.before(collision_rect_checker));
         app.add_systems(Startup, spawn_some_obstacles);
+        // layout
+        
     }
 }
