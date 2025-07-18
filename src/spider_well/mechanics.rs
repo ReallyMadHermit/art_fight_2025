@@ -366,13 +366,13 @@ pub fn spawn_some_holes(
             MeshMaterial3d(left_mat.clone()),
             Mesh3d(meshes.add(Cuboid::new(left_length, PLATFORM_THICKNESS, 1.0))),
             Transform::from_xyz(left_center, y, 0.0),
-            CollisionRect::new(left_length, PLATFORM_THICKNESS, Vec2::new(left_center, y))
+            CollisionRect::new(left_length, PLATFORM_THICKNESS)
         ));
         commands.spawn((
             MeshMaterial3d(right_mat.clone()),
             Mesh3d(meshes.add(Cuboid::new(right_length, PLATFORM_THICKNESS, 1.0))),
             Transform::from_xyz(right_center, y, 0.0),
-            CollisionRect::new(right_length, PLATFORM_THICKNESS, Vec2::new(right_center, y))
+            CollisionRect::new(right_length, PLATFORM_THICKNESS)
         ));
     };
 }
@@ -382,17 +382,16 @@ pub struct CollisionEvent;
 
 #[derive(Component)]
 pub struct CollisionRect{
-    center: Vec2,
     collision_radi: Vec2
 } impl CollisionRect {
-    pub fn new(width: f32, height: f32, center: Vec2) -> Self {
-        Self {center, collision_radi: Vec2::new(width/2.0, height/2.0) + PLAYER_RADIUS}
+    pub fn new(width: f32, height: f32) -> Self {
+        Self {collision_radi: Vec2::new(width/2.0, height/2.0) + PLAYER_RADIUS}
     }
 }
 
 pub fn collision_rect_checker(
     player_pos: Res<PlayerPos>,
-    collision_rects: Query<&CollisionRect>,
+    collision_rects: Query<(&CollisionRect, &Transform)>,
     mut event_writer: EventWriter<CollisionEvent>,
     mut hurt_return: ResMut<HurtReturn>,
     mut checkpoint: ResMut<CheckPoint>
@@ -400,8 +399,8 @@ pub fn collision_rect_checker(
     if hurt_return.f32 > 0.0 {
         return;
     };
-    for rect in collision_rects {
-        if RectChecks::is_inside_y_first(rect.collision_radi, rect.center, player_pos.vec) {
+    for (rect, transform) in collision_rects {
+        if RectChecks::is_inside_y_first(rect.collision_radi, transform.translation.xy(), player_pos.vec) {
             event_writer.write(CollisionEvent);
             hurt_return.f32 = HURT_RETURN_TIME;
             checkpoint.hurt_pos = player_pos.vec;
