@@ -1,5 +1,6 @@
-use std::f32::consts::TAU;
+use std::f32::consts::{TAU, FRAC_PI_2};
 use bevy::{core_pipeline::{bloom::Bloom, tonemapping::Tonemapping}, prelude::*, render::camera::ScalingMode};
+use crate::common::RectChecks;
 
 const THREAD_LENGTH_START: f32 = 3.0;
 const THREAD_RADIUS: f32 = 0.06125;
@@ -15,6 +16,7 @@ const STATIC_DRAG: f32 = 1.0;
 const PLATFORM_THICKNESS: f32 = 0.125;
 const CAMERA_RATE: f32 = 3.0;
 const HANG_POINT: Vec2 = Vec2{ x: 0.0, y: THREAD_LENGTH_START};
+const HURT_RETURN_TIME: f32 = 0.5;
 
 pub fn debug_scene_setup(
     mut commands: Commands,
@@ -99,6 +101,8 @@ pub fn insert_simple_resources(
         x: 0, y: 0, leaping: false, scheme: ControlScheme::Wasd
     });
     commands.insert_resource(PlayerVelocity {vec: Vec2::ZERO});
+    commands.insert_resource(CheckPoint {pos: Vec2::ZERO, hurt_pos: Vec2::ZERO});
+    commands.insert_resource(HurtReturn {f32: 0.0});
 }
 
 #[derive(Eq, PartialEq, Copy, Clone)]
@@ -181,11 +185,35 @@ pub fn move_player(
     mut player_swing: ResMut<PlayerSwing>,
     mut player_velocity: ResMut<PlayerVelocity>,
     mut player_pos: ResMut<PlayerPos>,
-    mut query: Query<&mut Transform, With<PlayerMarker>>
+    mut query: Query<&mut Transform, With<PlayerMarker>>,
+    checkpoint: Res<CheckPoint>,
+    mut hurt_return: ResMut<HurtReturn>
 ) {
     // resource variables
     let dt = time.delta_secs();
     let player_transform = &mut query.single_mut().unwrap();
+    
+    // hurt return logic
+    if hurt_return.f32 > 0.0 {
+        hurt_return.f32 -= dt;
+        if hurt_return.f32 <= 0.0 {
+            hurt_return.f32 = 0.0;
+            player_transform.translation = checkpoint.pos.extend(0.0);
+            player_pos.vec = checkpoint.pos;
+            player_swing.angle = 0.0;
+        } else {
+            let n = hurt_return.f32 / HURT_RETURN_TIME;
+            let n1 = 1.0 - n;
+            let x = checkpoint.hurt_pos.x * n + checkpoint.pos.x * n1;
+            let y = checkpoint.hurt_pos.y * n + checkpoint.pos.y * n1;
+            player_transform.translation.x = x;
+            player_transform.translation.y = y;
+            player_pos.vec = Vec2::new(x, y);
+        };
+        player_swing.thread_length = player_pos.vec.distance(HANG_POINT);
+        player_swing.angular_v = 0.0;
+        return;
+    };
 
     // leaping logic
     if player_inputs.leaping {
@@ -337,12 +365,58 @@ pub fn spawn_some_holes(
         commands.spawn((
             MeshMaterial3d(left_mat.clone()),
             Mesh3d(meshes.add(Cuboid::new(left_length, PLATFORM_THICKNESS, 1.0))),
-            Transform::from_xyz(left_center, y, 0.0)
+            Transform::from_xyz(left_center, y, 0.0),
+            CollisionRect::new(left_length, PLATFORM_THICKNESS, Vec2::new(left_center, y))
         ));
         commands.spawn((
             MeshMaterial3d(right_mat.clone()),
             Mesh3d(meshes.add(Cuboid::new(right_length, PLATFORM_THICKNESS, 1.0))),
-            Transform::from_xyz(right_center, y, 0.0)
+            Transform::from_xyz(right_center, y, 0.0),
+            CollisionRect::new(right_length, PLATFORM_THICKNESS, Vec2::new(right_center, y))
         ));
     };
+}
+
+#[derive(Event)]
+pub struct CollisionEvent;
+
+#[derive(Component)]
+pub struct CollisionRect{
+    center: Vec2,
+    collision_radi: Vec2
+} impl CollisionRect {
+    pub fn new(width: f32, height: f32, center: Vec2) -> Self {
+        Self {center, collision_radi: Vec2::new(width/2.0, height/2.0) + PLAYER_RADIUS}
+    }
+}
+
+pub fn collision_rect_checker(
+    player_pos: Res<PlayerPos>,
+    collision_rects: Query<&CollisionRect>,
+    mut event_writer: EventWriter<CollisionEvent>,
+    mut hurt_return: ResMut<HurtReturn>,
+    mut checkpoint: ResMut<CheckPoint>
+) {
+    if hurt_return.f32 > 0.0 {
+        return;
+    };
+    for rect in collision_rects {
+        if RectChecks::is_inside_y_first(rect.collision_radi, rect.center, player_pos.vec) {
+            event_writer.write(CollisionEvent);
+            hurt_return.f32 = HURT_RETURN_TIME;
+            checkpoint.hurt_pos = player_pos.vec;
+            break;
+        };
+    };
+}
+
+#[derive(Resource)]
+pub struct CheckPoint {
+    pos: Vec2,
+    hurt_pos: Vec2
+}
+
+#[derive(Resource)]
+pub struct HurtReturn {
+    f32: f32
 }
