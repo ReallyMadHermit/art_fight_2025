@@ -389,6 +389,17 @@ pub struct CollisionRect{
     }
 }
 
+#[derive(Resource)]
+pub struct CheckPoint {
+    pos: Vec2,
+    hurt_pos: Vec2
+}
+
+#[derive(Resource)]
+pub struct HurtReturn {
+    f32: f32
+}
+
 pub fn collision_rect_checker(
     player_pos: Res<PlayerPos>,
     collision_rects: Query<(&CollisionRect, &Transform)>,
@@ -409,13 +420,99 @@ pub fn collision_rect_checker(
     };
 }
 
-#[derive(Resource)]
-pub struct CheckPoint {
-    pos: Vec2,
-    hurt_pos: Vec2
+#[derive(Component)]
+pub struct ObstaclePathing {
+    waypoints: Vec<(Vec2, f32)>,
+    progress: f32,
+    vec_size: i8,
+    vec_step: i8
+} impl ObstaclePathing {
+    
+    pub fn new(waypoints: Vec<(Vec2, f32)>) -> Self {
+        let n = waypoints.len();
+        Self {
+            waypoints,
+            progress: 0.0,
+            vec_step: 0,
+            vec_size: n as i8
+        }
+    }
+    
+    pub fn uniform_timing(travel_points: Vec<Vec2>, step_duration: f32) -> Self {
+        let mut waypoints: Vec<(Vec2, f32)> = Vec::with_capacity(travel_points.len());
+        for point in travel_points {
+            waypoints.push((point, step_duration));
+        };
+        Self::new(waypoints)
+    }
+    
+    pub fn update(&mut self, dt: f32) {
+        self.progress += dt;
+        let duration = self.get_duration();
+        if self.progress >= duration {
+            self.progress -= duration;
+            self.vec_step = self.get_step(1);
+        };
+    }
+    
+    pub fn get_vec(&self) -> Vec2 {
+        let (goal, duration) = self.waypoints[self.vec_step as usize];
+        let last_stop = self.waypoints[self.get_step(-1) as usize].0;
+        let n = self.progress / duration;
+        let nm = 1.0 - n;
+        last_stop * nm + goal * n
+    }
+    
+    fn get_duration(&self) -> f32 {
+        self.waypoints[self.vec_step as usize].1
+    }
+    
+    fn get_step(&self, step_mod: i8) -> i8 {
+        let n = self.vec_step + step_mod;
+        if n >= self.vec_size {
+            0
+        } else if n < 0 {
+            self.vec_size - 1
+        } else {
+            n
+        }
+    }
+    
 }
 
-#[derive(Resource)]
-pub struct HurtReturn {
-    f32: f32
+pub fn move_obstacles(
+    time: Res<Time>,
+    mut query: Query<(&mut Transform, &mut ObstaclePathing)>
+) {
+    let dt = time.delta_secs();
+    for (mut transform, mut obstacle) in &mut query {
+        obstacle.update(dt);
+        transform.translation = obstacle.get_vec().extend(0.0)
+    };
+}
+
+pub fn spawn_some_obstacles(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>
+) {
+    let mesh = meshes.add(Cuboid::from_length(1.0));
+    let material = materials.add(StandardMaterial{
+        base_color: Color::linear_rgb(0.0, 1.0, 0.0),
+        ..default()
+    });
+    let y_base = -9.5f32;
+    let x_range = 5.0f32;
+    for i in 0..5 {
+        let mut ways: Vec<Vec2> = Vec::with_capacity(2);
+        ways.push(Vec2::new(-x_range, y_base - i as f32));
+        ways.push(Vec2::new(x_range, y_base - i as f32));
+        commands.spawn((
+            Mesh3d(mesh.clone()),
+            MeshMaterial3d(material.clone()),
+            Transform::default(),
+            CollisionRect::new(1.0, 1.0),
+            ObstaclePathing::uniform_timing(ways, i as f32 + 1.0)
+        ));
+    }
 }
