@@ -1,5 +1,7 @@
 use bevy::prelude::*;
-use crate::spider_well::mechanics::CollisionRect;
+use crate::spider_well::mechanics::{
+    CollisionRect, spawn_checkpoint
+};
 
 pub const LEVEL_WIDTH: f32 = 20.0;
 pub const LEVEL_DEPTH: f32 = 1.0;
@@ -13,6 +15,8 @@ impl Stage1 {
     const HOLE_WIDENING: f32 = 0.5;
     const LEVEL_LENGTH: usize = 6;
     const PLATFORM_THICKNESS: f32 = 0.5;
+    const END: f32 = Self::START - (Self::VERTICAL_SPACING * (Self::LEVEL_LENGTH - 1) as f32);
+    const CHECKPOINT: f32 = Self::END - 2.0;
 }
 
 #[derive(Resource)]
@@ -89,4 +93,5 @@ pub fn spawn_stage_1(
             CollisionRect::new(right_length, Stage1::PLATFORM_THICKNESS)
         ));
     };
+    spawn_checkpoint(Stage1::CHECKPOINT, &mut commands);
 }

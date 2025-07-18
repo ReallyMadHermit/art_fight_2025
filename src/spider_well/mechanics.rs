@@ -101,7 +101,7 @@ pub fn insert_simple_resources(
         x: 0, y: 0, leaping: false, scheme: ControlScheme::Wasd
     });
     commands.insert_resource(PlayerVelocity {vec: Vec2::ZERO});
-    commands.insert_resource(CheckPoint {pos: Vec2::ZERO, hurt_pos: Vec2::ZERO});
+    commands.insert_resource(LastCheckPoint {pos: Vec2::ZERO, hurt_pos: Vec2::ZERO});
     commands.insert_resource(HurtReturn {f32: 0.0});
 }
 
@@ -186,7 +186,7 @@ pub fn move_player(
     mut player_velocity: ResMut<PlayerVelocity>,
     mut player_pos: ResMut<PlayerPos>,
     mut query: Query<&mut Transform, With<PlayerMarker>>,
-    checkpoint: Res<CheckPoint>,
+    checkpoint: Res<LastCheckPoint>,
     mut hurt_return: ResMut<HurtReturn>
 ) {
     // resource variables
@@ -390,7 +390,7 @@ pub struct CollisionRect{
 }
 
 #[derive(Resource)]
-pub struct CheckPoint {
+pub struct LastCheckPoint {
     pos: Vec2,
     hurt_pos: Vec2
 }
@@ -405,7 +405,7 @@ pub fn collision_rect_checker(
     collision_rects: Query<(&CollisionRect, &Transform)>,
     mut event_writer: EventWriter<CollisionEvent>,
     mut hurt_return: ResMut<HurtReturn>,
-    mut checkpoint: ResMut<CheckPoint>
+    mut checkpoint: ResMut<LastCheckPoint>
 ) {
     if hurt_return.f32 > 0.0 {
         return;
@@ -515,4 +515,38 @@ pub fn spawn_some_obstacles(
             ObstaclePathing::uniform_timing(ways, i as f32 + 1.0)
         ));
     }
+}
+
+#[derive(Component)]
+pub struct CheckPoint {
+    y: f32,
+    checked: bool
+} impl CheckPoint {
+    pub fn new(y: f32) -> Self {
+        Self {y, checked: false}
+    }
+}
+
+pub fn spawn_checkpoint(
+    y: f32,
+    commands: &mut Commands
+) {
+    commands.spawn(CheckPoint::new(y));
+}
+
+pub fn checkpoint_checker(
+    player_pos: Res<PlayerPos>,
+    mut last_check_point: ResMut<LastCheckPoint>,
+    mut query: Query<&mut CheckPoint>
+) {
+    let py = player_pos.vec.y;
+    for mut checkpoint in &mut query {
+        if checkpoint.checked {
+            continue;
+        } else if py < checkpoint.y {
+            println!("bing bing, check point!!");
+            last_check_point.pos.y = checkpoint.y;
+            checkpoint.checked = true;
+        };
+    };
 }
