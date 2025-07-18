@@ -1,12 +1,12 @@
 use std::f32::consts::{TAU, FRAC_PI_2};
 use bevy::{core_pipeline::{bloom::Bloom, tonemapping::Tonemapping}, prelude::*, render::camera::ScalingMode};
 use crate::common::RectChecks;
+use crate::spider_well::level_layout::LEVEL_WIDTH;
 
 const THREAD_LENGTH_START: f32 = 3.0;
 const THREAD_RADIUS: f32 = 0.06125;
 const STICKING_POINT_RADIUS: f32 = 0.2;
 const PLAYER_RADIUS: f32 = 0.5;
-const LEVEL_WIDTH: f32 = 20.0;
 const GRAVITY: f32 = 0.625;
 const LEAP_GRAVITY: f32 = 20.0;
 const PLAYER_LEAN: f32 = 0.05;
