@@ -8,7 +8,7 @@ use mechanics::{
 
 pub mod level_layout;
 use level_layout::{
-    insert_debug_level_assets, spawn_stage_1
+    insert_debug_level_assets, spawn_stage_1, spawn_stage_2
 };
 
 pub struct SpiderWellPlugin;
@@ -30,6 +30,8 @@ impl Plugin for SpiderWellPlugin {
         
         // layout
         app.add_systems(Startup, insert_debug_level_assets);
-        app.add_systems(Startup, spawn_stage_1.after(insert_debug_level_assets));
+        app.add_systems(Startup, (
+            spawn_stage_1, spawn_stage_2
+        ).after(insert_debug_level_assets));
     }
 }

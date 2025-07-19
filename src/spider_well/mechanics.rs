@@ -353,7 +353,7 @@ pub fn spawn_some_holes(
         (2.0, -5.0, 4.0),
         (-2.0, -9.0, 4.0)
     ];
-    let x_max = (LEVEL_WIDTH / 2.0);
+    let x_max = LEVEL_WIDTH / 2.0;
     let x_min = -x_max;
     for (x, y, w) in holes {
         let left_edge = x - (w/2.0);
@@ -427,7 +427,7 @@ pub struct ObstaclePathing {
     vec_size: i8,
     vec_step: i8
 } impl ObstaclePathing {
-    
+
     pub fn new(waypoints: Vec<(Vec2, f32)>) -> Self {
         let n = waypoints.len();
         Self {
@@ -437,7 +437,7 @@ pub struct ObstaclePathing {
             vec_size: n as i8
         }
     }
-    
+
     pub fn uniform_timing(travel_points: Vec<Vec2>, step_duration: f32) -> Self {
         let mut waypoints: Vec<(Vec2, f32)> = Vec::with_capacity(travel_points.len());
         for point in travel_points {
@@ -445,7 +445,7 @@ pub struct ObstaclePathing {
         };
         Self::new(waypoints)
     }
-    
+
     pub fn update(&mut self, dt: f32) {
         self.progress += dt;
         let duration = self.get_duration();
@@ -454,7 +454,7 @@ pub struct ObstaclePathing {
             self.vec_step = self.get_step(1);
         };
     }
-    
+
     pub fn get_vec(&self) -> Vec2 {
         let (goal, duration) = self.waypoints[self.vec_step as usize];
         let last_stop = self.waypoints[self.get_step(-1) as usize].0;
@@ -462,11 +462,11 @@ pub struct ObstaclePathing {
         let nm = 1.0 - n;
         last_stop * nm + goal * n
     }
-    
+
     fn get_duration(&self) -> f32 {
         self.waypoints[self.vec_step as usize].1
     }
-    
+
     fn get_step(&self, step_mod: i8) -> i8 {
         let n = self.vec_step + step_mod;
         if n >= self.vec_size {
@@ -477,7 +477,7 @@ pub struct ObstaclePathing {
             n
         }
     }
-    
+
 }
 
 pub fn move_obstacles(
