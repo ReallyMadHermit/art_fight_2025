@@ -11,6 +11,8 @@ use level_layout::{
     insert_debug_level_assets, spawn_stage_1, spawn_stage_2
 };
 
+pub mod characters;
+
 pub struct SpiderWellPlugin;
 impl Plugin for SpiderWellPlugin {
     fn build(&self, app: &mut App) {
@@ -28,7 +30,7 @@ impl Plugin for SpiderWellPlugin {
         app.add_systems(Update, move_obstacles.before(collision_rect_checker));
         app.add_systems(Update, checkpoint_checker);
         app.add_systems(Update, damsel_checker);
-        
+
         // layout
         app.add_systems(Startup, insert_debug_level_assets);
         app.add_systems(Startup, (

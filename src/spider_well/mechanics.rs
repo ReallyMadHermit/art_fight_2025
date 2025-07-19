@@ -44,7 +44,7 @@ pub fn debug_scene_setup(
     );
     commands.insert_resource(AmbientLight{
         color: Color::WHITE,
-        brightness: 1000.0,
+        brightness: 2000.0,
         ..default()
     });
 }
