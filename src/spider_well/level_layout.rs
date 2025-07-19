@@ -1,10 +1,11 @@
 use bevy::prelude::*;
+use fastrand::fill;
 use crate::spider_well::mechanics::{CollisionRect, spawn_checkpoint, ObstaclePathing};
 
 pub const LEVEL_WIDTH: f32 = 20.0;
 pub const LEVEL_DEPTH: f32 = 1.0;
 const X_MAX: f32 = LEVEL_WIDTH / 2.0;
-const X_MIN: f32 = -X_MAX; 
+const X_MIN: f32 = -X_MAX;
 
 struct Stage1;
 impl Stage1 {
@@ -102,8 +103,7 @@ impl Stage2 {
     const BLOCKS1DURATION: f32 = 5.0;
     const BLOCKS1WIDTH: f32 = 8.0;
     const BLOCKS1END: f32 = Self::START - Self::BLOCKS1HEIGHT * 3.0;
-    const BLOCKS2START: f32 = Self::BLOCKS1END - Self::VERTICAL_SPACING;
-    
+
     fn spawn_blocks_1(
         commands: &mut Commands, assets: &Res<DebugLevelAssets>
     ) {
@@ -140,18 +140,56 @@ impl Stage2 {
             ));
         };
     }
-    
+
+    const BLOCKS2START: f32 = Self::BLOCKS1END - Self::VERTICAL_SPACING;
+    const BLOCKS2COUNT: usize = 10;
+    const BLOCKS2SIZE: f32 = 2.5;
+    const BLOCKS2SWING_RANGE: f32 = 4.0;
+    const BLOCKS2DURATION: f32 = 4.0;
+    const BLOCKS2END: f32 = Self::BLOCKS2START - (Self::BLOCKS2SIZE * Self::BLOCKS2COUNT as f32);
+
     fn spawn_blocks_2(commands: &mut Commands, assets: &Res<DebugLevelAssets>) {
-        
-        commands.spawn((
-            Mesh3d(assets.cube.clone()),
-            MeshMaterial3d(assets.green_mat.clone()),
-            Transform::from_xyz(0.0, Self::BLOCKS2START, 0.0)
-                .with_scale(Vec3::new(8.0, 0.25, LEVEL_DEPTH)),
-            CollisionRect::new(1.0, 0.25)
-        ));
+        let scale_vec = Vec3::ONE * Self::BLOCKS2SIZE;
+        let mats = [&assets.red_mat, &assets.green_mat, &assets.blue_mat];
+        let mesh = &assets.cube;
+        let mut lowest_y = 0.0;
+        for i in 0..Self::BLOCKS2COUNT {
+            let y = Self::BLOCKS2START - Self::BLOCKS2SIZE * i as f32 - Self::BLOCKS2SIZE / 2.0;
+            let x = if i % 2 == 0 {
+                Self::BLOCKS2SWING_RANGE
+            } else {
+                -Self::BLOCKS2SWING_RANGE
+            };
+            let ways = vec![
+                Vec2::new(x, y),
+                Vec2::new(-x, y)
+            ];
+            commands.spawn((
+                Mesh3d(mesh.clone()),
+                MeshMaterial3d(mats[i % 3].clone()),
+                Transform::from_xyz(x, y, 0.0)
+                    .with_scale(scale_vec),
+                ObstaclePathing::uniform_timing(ways, Self::BLOCKS2DURATION),
+                CollisionRect::new(Self::BLOCKS2SIZE, Self::BLOCKS2SIZE)
+            ));
+            lowest_y = y;
+        };
+        let filler_width = X_MAX - Self::BLOCKS2SWING_RANGE - Self::BLOCKS2SIZE / 2.0;
+        let filler_height = (Self::BLOCKS2START - Self::BLOCKS2END).abs();
+        let filler_x = X_MAX - filler_width / 2.0;
+        let filler_y = (Self::BLOCKS2START + Self::BLOCKS2END) / 2.0;
+        for x in [-filler_x, filler_x] {
+            commands.spawn((
+                Mesh3d(assets.cube.clone()),
+                MeshMaterial3d(assets.blue_mat.clone()),
+                Transform::from_xyz(x, filler_y, 0.0)
+                    .with_scale(Vec3::new(filler_width, filler_height, LEVEL_DEPTH)),
+                CollisionRect::new(filler_width, filler_height)
+            ));
+        };
+        spawn_checkpoint(Self::BLOCKS2END - 2.0, commands);
     }
-    
+
 }
 
 pub fn spawn_stage_2(

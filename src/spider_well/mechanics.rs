@@ -410,13 +410,22 @@ pub fn collision_rect_checker(
     if hurt_return.f32 > 0.0 {
         return;
     };
+    let mut hurting = false;
+    if player_pos.vec.x.abs() - PLAYER_RADIUS > LEVEL_WIDTH / 2.0 {
+        hurting = true;
+    }
     for (rect, transform) in collision_rects {
-        if RectChecks::is_inside_y_first(rect.collision_radi, transform.translation.xy(), player_pos.vec) {
-            event_writer.write(CollisionEvent);
-            hurt_return.f32 = HURT_RETURN_TIME;
-            checkpoint.hurt_pos = player_pos.vec;
+        if hurting {
             break;
         };
+        if RectChecks::is_inside_y_first(rect.collision_radi, transform.translation.xy(), player_pos.vec) {
+            hurting = true;
+        };
+    };
+    if hurting {
+        event_writer.write(CollisionEvent);
+        hurt_return.f32 = HURT_RETURN_TIME;
+        checkpoint.hurt_pos = player_pos.vec;
     };
 }
 
