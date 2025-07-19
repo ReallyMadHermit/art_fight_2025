@@ -1,7 +1,7 @@
 use std::f32::consts::{TAU, FRAC_PI_2};
 use bevy::{core_pipeline::{bloom::Bloom, tonemapping::Tonemapping}, prelude::*, render::camera::ScalingMode};
 use crate::common::RectChecks;
-use crate::spider_well::level_layout::LEVEL_WIDTH;
+use crate::spider_well::level_layout::{LEVEL_WIDTH, DAMSEL_Y};
 
 const THREAD_LENGTH_START: f32 = 3.0;
 const THREAD_RADIUS: f32 = 0.06125;
@@ -103,6 +103,7 @@ pub fn insert_simple_resources(
     commands.insert_resource(PlayerVelocity {vec: Vec2::ZERO});
     commands.insert_resource(LastCheckPoint {pos: Vec2::ZERO, hurt_pos: Vec2::ZERO});
     commands.insert_resource(HurtReturn {f32: 0.0});
+    commands.insert_resource(DamselAcquired{bool: false});
 }
 
 #[derive(Eq, PartialEq, Copy, Clone)]
@@ -557,5 +558,20 @@ pub fn checkpoint_checker(
             last_check_point.pos.y = checkpoint.y;
             checkpoint.checked = true;
         };
+    };
+}
+
+#[derive(Resource)]
+pub struct DamselAcquired {
+    bool: bool
+}
+
+pub fn damsel_checker(
+    player_pos: Res<PlayerPos>,
+    mut damsel_acquired: ResMut<DamselAcquired>,
+) {
+    if !damsel_acquired.bool && player_pos.vec.y < DAMSEL_Y {
+        damsel_acquired.bool = true;
+        println!("Damsel acquired!");
     };
 }
