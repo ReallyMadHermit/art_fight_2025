@@ -12,6 +12,9 @@ use level_layout::{
 };
 
 pub mod characters;
+use characters::{
+    spawn_spider_parts, insert_star_pos_hashmap, update_spider_parts
+};
 
 pub struct SpiderWellPlugin;
 impl Plugin for SpiderWellPlugin {
@@ -36,5 +39,10 @@ impl Plugin for SpiderWellPlugin {
         app.add_systems(Startup, (
             spawn_stage_1, spawn_stage_2
         ).after(insert_debug_level_assets));
+        
+        // characters
+        app.add_systems(Startup, spawn_spider_parts.after(spawn_player));
+        app.add_systems(Startup, insert_star_pos_hashmap);
+        app.add_systems(Update, update_spider_parts.after(insert_star_pos_hashmap));
     }
 }

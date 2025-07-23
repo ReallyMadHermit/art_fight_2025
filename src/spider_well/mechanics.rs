@@ -4,13 +4,13 @@ use crate::common::RectChecks;
 use crate::spider_well::level_layout::{LEVEL_WIDTH, DAMSEL_Y};
 
 const THREAD_LENGTH_START: f32 = 3.0;
-const THREAD_RADIUS: f32 = 0.06125;
+const THREAD_RADIUS: f32 = 0.0125;
 const STICKING_POINT_RADIUS: f32 = 0.2;
 const PLAYER_RADIUS: f32 = 0.5;
 const GRAVITY: f32 = 0.625;
 const LEAP_GRAVITY: f32 = 20.0;
 const PLAYER_LEAN: f32 = 0.05;
-const PLAYER_CLIMB: f32 = 2.0;
+pub const PLAYER_CLIMB: f32 = 2.0;
 const PLAYER_DRAG: f32 = 0.10;
 const STATIC_DRAG: f32 = 1.0;
 const PLATFORM_THICKNESS: f32 = 0.125;
@@ -66,6 +66,11 @@ pub fn camera_mover(
 #[derive(Component)]
 pub struct PlayerMarker;
 
+#[derive(Resource)]
+pub struct PlayerEntity{
+    pub entity: Entity
+}
+
 pub fn spawn_player(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -73,23 +78,25 @@ pub fn spawn_player(
     webbing_assets: Res<WebbingAssets>
 ) {
     let mat = materials.add(StandardMaterial {
-        base_color: Color::linear_rgba(0.8, 0.0, 0.0, 1.0),
+        base_color: Color::linear_rgba(0.8, 0.0, 0.0, 0.2),
         unlit: true,
+        alpha_mode: AlphaMode::Add,
         ..default()
     });
     let mesh = meshes.add(Sphere::new(PLAYER_RADIUS));
-    commands.spawn((
+    let entity = commands.spawn((
         Mesh3d(mesh),
         MeshMaterial3d(mat),
         Transform::default(),
         PlayerMarker
-    ));
+    )).id();
     commands.spawn((
         Mesh3d(webbing_assets.thread_mesh.clone()),
         MeshMaterial3d(webbing_assets.material.clone()),
         Transform::default(),
         ThreadMarker
     ));
+    commands.insert_resource(PlayerEntity{entity});
 }
 
 pub fn insert_simple_resources(
@@ -116,10 +123,10 @@ pub enum ControlScheme {
 
 #[derive(Resource)]
 pub struct PlayerInputs {
-    x: i8,
-    y: i8,
-    leaping: bool,
-    scheme: ControlScheme
+    pub x: i8,
+    pub y: i8,
+    pub leaping: bool,
+    pub scheme: ControlScheme
 }
 
 pub fn player_controls(
