@@ -229,8 +229,8 @@ pub fn update_spider_parts(
             transform.rotate_z(FRAC_PI_2);  // twist it cause rotate don't do it right
         } else {
             // if it's a joint we just... apply it, lmao, spheres, amiright?
-            let joint_pos = limb_positions.hash_map.get(spider_part).unwrap().clone();
-            transform.translation = joint_pos.extend(0.0);
+            let joint_pos = limb_positions.hash_map.get(spider_part).unwrap().extend(0.0);
+            transform.translation = joint_pos;
         };
     };
 }
