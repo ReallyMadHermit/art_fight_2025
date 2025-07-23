@@ -226,7 +226,7 @@ pub fn update_spider_parts(
             };
             transform.translation = p.extend(0.0);
             transform.look_at(point_to.extend(0.0), Vec3::Y);
-            transform.rotate_z(FRAC_PI_2);
+            transform.rotate_z(FRAC_PI_2);  // twist it cause rotate don't do it right
         } else {
             // if it's a joint we just... apply it, lmao, spheres, amiright?
             let joint_pos = limb_positions.hash_map.get(spider_part).unwrap().clone();
