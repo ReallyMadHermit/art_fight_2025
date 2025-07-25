@@ -1,4 +1,4 @@
-use std::f32::consts::{TAU, FRAC_PI_2};
+use std::f32::consts::TAU;
 use bevy::{core_pipeline::{bloom::Bloom, tonemapping::Tonemapping}, prelude::*, render::camera::ScalingMode};
 use crate::common::RectChecks;
 use crate::spider_well::level_layout::{LEVEL_WIDTH, DAMSEL_Y};
@@ -13,7 +13,6 @@ const PLAYER_LEAN: f32 = 0.05;
 pub const PLAYER_CLIMB: f32 = 2.0;
 const PLAYER_DRAG: f32 = 0.10;
 const STATIC_DRAG: f32 = 1.0;
-const PLATFORM_THICKNESS: f32 = 0.125;
 const CAMERA_RATE: f32 = 3.0;
 const HANG_POINT: Vec2 = Vec2{ x: 0.0, y: THREAD_LENGTH_START};
 const HURT_RETURN_TIME: f32 = 0.5;
@@ -300,15 +299,6 @@ pub struct WebbingAssets {
     ) -> Self {
         Self {material, thread_mesh, sphere_mesh }
     }
-    pub fn get_material(&self) -> Handle<StandardMaterial> {
-        self.material.clone()
-    }
-    pub fn get_thread(&self) -> Handle<Mesh> {
-        self.thread_mesh.clone()
-    }
-    pub fn get_sphere(&self) -> Handle<Mesh> {
-        self.thread_mesh.clone()
-    }
 }
 
 pub fn insert_webbing_assets(
@@ -344,48 +334,6 @@ pub fn web_updater(
     player_thread_transform.translation = average_pos.extend(0.0);
     player_thread_transform.scale.y = player_swing.thread_length;
     player_thread_transform.rotation = Quat::from_rotation_z(player_swing.angle);
-}
-
-pub fn spawn_some_holes(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>
-) {
-    let left_mat = materials.add(StandardMaterial {
-        base_color: Color::linear_rgb(0.0, 0.0, 1.0),
-        ..default()
-    });
-    let right_mat = materials.add(StandardMaterial {
-        base_color: Color::linear_rgb(1.0, 0.0, 0.0),
-        ..default()
-    });
-    let holes = [
-        (0.0, -1.0, 4.0),
-        (2.0, -5.0, 4.0),
-        (-2.0, -9.0, 4.0)
-    ];
-    let x_max = LEVEL_WIDTH / 2.0;
-    let x_min = -x_max;
-    for (x, y, w) in holes {
-        let left_edge = x - (w/2.0);
-        let right_edge = x + (w/2.0);
-        let left_center = (left_edge + x_min) / 2.0;
-        let right_center = (right_edge + x_max) / 2.0;
-        let left_length = (left_edge - x_min).abs();
-        let right_length = (right_edge - x_max).abs();
-        commands.spawn((
-            MeshMaterial3d(left_mat.clone()),
-            Mesh3d(meshes.add(Cuboid::new(left_length, PLATFORM_THICKNESS, 1.0))),
-            Transform::from_xyz(left_center, y, 0.0),
-            CollisionRect::new(left_length, PLATFORM_THICKNESS)
-        ));
-        commands.spawn((
-            MeshMaterial3d(right_mat.clone()),
-            Mesh3d(meshes.add(Cuboid::new(right_length, PLATFORM_THICKNESS, 1.0))),
-            Transform::from_xyz(right_center, y, 0.0),
-            CollisionRect::new(right_length, PLATFORM_THICKNESS)
-        ));
-    };
 }
 
 #[derive(Event)]
@@ -509,32 +457,6 @@ pub fn move_obstacles(
         obstacle.update(dt);
         transform.translation = obstacle.get_vec().extend(0.0)
     };
-}
-
-pub fn spawn_some_obstacles(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>
-) {
-    let mesh = meshes.add(Cuboid::from_length(1.0));
-    let material = materials.add(StandardMaterial{
-        base_color: Color::linear_rgb(0.0, 1.0, 0.0),
-        ..default()
-    });
-    let y_base = -9.5f32;
-    let x_range = 5.0f32;
-    for i in 0..5 {
-        let mut ways: Vec<Vec2> = Vec::with_capacity(2);
-        ways.push(Vec2::new(-x_range, y_base - i as f32));
-        ways.push(Vec2::new(x_range, y_base - i as f32));
-        commands.spawn((
-            Mesh3d(mesh.clone()),
-            MeshMaterial3d(material.clone()),
-            Transform::default(),
-            CollisionRect::new(1.0, 1.0),
-            ObstaclePathing::uniform_timing(ways, i as f32 + 1.0)
-        ));
-    }
 }
 
 #[derive(Component)]
