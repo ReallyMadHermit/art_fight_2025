@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use crate::spider_well::mechanics::{CollisionRect, spawn_checkpoint, ObstaclePathing};
 
-pub const LEVEL_WIDTH: f32 = 20.0;
+pub const LEVEL_WIDTH: f32 = 16.0;
 pub const LEVEL_DEPTH: f32 = 1.0;
 const X_MAX: f32 = LEVEL_WIDTH / 2.0;
 const X_MIN: f32 = -X_MAX;
@@ -101,7 +101,7 @@ impl Stage2 {
     const VERTICAL_SPACING: f32 = 5.0;
     const BLOCKS1HEIGHT: f32 = 2.0;
     const BLOCKS1DURATION: f32 = 5.0;
-    const BLOCKS1WIDTH: f32 = 8.0;
+    const BLOCKS1WIDTH: f32 = 6.0;
     const BLOCKS1END: f32 = Self::START - Self::BLOCKS1HEIGHT * 3.0;
 
     fn spawn_blocks_1(
