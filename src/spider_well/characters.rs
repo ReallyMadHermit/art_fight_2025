@@ -12,7 +12,7 @@ const SPIDER_EYES: Color = Color::hsl(287.0, 0.6, 0.5);
 
 const CHARACTER_SCALE: f32 = 0.75;
 
-const JOINT_RADIUS: f32 = 0.045 * CHARACTER_SCALE;
+const JOINT_RADIUS: f32 = 0.05 * CHARACTER_SCALE;
 const SEGMENT_RADIUS: f32 = 0.04 * CHARACTER_SCALE;
 const CLAW_RADIUS: f32 = 0.035 * CHARACTER_SCALE;
 const SEGMENT_LENGTH: f32 = 0.25 * CHARACTER_SCALE;
@@ -55,8 +55,61 @@ const TOOTH_RADIUS: f32 = 0.03 * CHARACTER_SCALE;
 const TOOTH_LENGTH: f32 = 0.12 * CHARACTER_SCALE;
 const TOOTH_Y: f32 = 0.08;
 
-const CLIMB_DISPLACEMENT: f32 = 0.25;
-const CLIMB_CYCLE_TIME: f32 = (CLIMB_DISPLACEMENT * 2.0) / PLAYER_CLIMB;
+const STEP_DISPLACEMENT: f32 = 0.25;
+const CLIMB_CYCLE_TIME: f32 = (STEP_DISPLACEMENT * 2.0) / PLAYER_CLIMB;
+
+pub fn calculate_leg_joints(
+    time: Res<Time>,
+    mut limb_positions: ResMut<LimbPositions>,
+    player_inputs: Res<PlayerInputs>
+) {
+    let mut t = (time.elapsed_secs() % CLIMB_CYCLE_TIME) / CLIMB_CYCLE_TIME;
+    let mut t1 = (t + 0.5) % 1.0;
+    if player_inputs.y == 0 {
+        t = 0.0;
+        t1 = 0.5;
+    };
+    let cycle = (t * TAU).sin();
+    let cycle1 = (t1 * TAU).sin();
+    let dy = cycle * STEP_DISPLACEMENT;
+    let dy1 = cycle1 * STEP_DISPLACEMENT;
+    
+    let arc_middle = LIMB_START + SEGMENT_LENGTH;
+    let arc_end = arc_middle + SEGMENT_LENGTH;
+    let y_step = (arc_end - LIMB_START + dy) / 3.0;
+    let y_step1 = (arc_end - LIMB_START + dy1) / 3.0;
+    let x_spread = [
+        SEGMENT_LENGTH * FRAC_1_SQRT_2,
+        SEGMENT_LENGTH * FRAC_1_SQRT_2,
+        0.0
+    ];
+    let y_spread = [
+        y_step + LIMB_START,
+        y_step * 2.0 + LIMB_START,
+        y_step * 3.0 + LIMB_START
+    ];
+    let y_spread1 = [
+        y_step1 + LIMB_START,
+        y_step1 * 2.0 + LIMB_START,
+        y_step1 * 3.0 + LIMB_START
+    ];
+    for i in 0..3usize {
+        limb_positions.hash_map.insert(SpiderLimbPart {
+            part_type: LimbPartType::LegJoint,
+            segment_id: i as u8,
+            side: -1
+        },
+        Vec2::new(-x_spread[i], y_spread[i])
+        );
+        limb_positions.hash_map.insert(SpiderLimbPart {
+            part_type: LimbPartType::LegJoint,
+            segment_id: i as u8,
+            side: 1
+        },
+        Vec2::new(x_spread[i], y_spread1[i])
+        );
+    }
+}
 
 #[derive(Component, Copy, Clone, Hash, Eq, PartialEq)]
 pub struct SpiderLimbPart {
