@@ -189,7 +189,6 @@ impl Stage2 {
         };
         spawn_checkpoint(Self::BLOCKS2END - 2.0, commands);
     }
-
 }
 
 pub fn spawn_stage_2(
