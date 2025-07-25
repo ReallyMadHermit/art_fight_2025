@@ -241,6 +241,7 @@ pub fn move_player(
         let xv_a = (player_velocity.vec.x * acos) / (player_swing.thread_length.powi(2) * TAU);
         let yv_a = (player_velocity.vec.y * asin) / (player_swing.thread_length.powi(2) * TAU);
         player_swing.angular_v = xv_a + yv_a;
+        player_transform.rotation = Quat::from_rotation_z(player_swing.angle);
         return;
     };
 
@@ -282,8 +283,10 @@ pub fn move_player(
     // update velocity for flinging
     player_velocity.vec = (player_pos.vec - player_transform.translation.xy()) / dt;
     
-    //update translation
+    //update transform
     player_transform.translation = player_pos.vec.extend(0.0);
+    player_transform.rotation = Quat::from_rotation_z(player_swing.angle);
+    player_transform.rotate_y(time.elapsed_secs() * 0.5);
 }
 
 #[derive(Resource)]
