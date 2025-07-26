@@ -2,7 +2,7 @@ use std::f32::consts::{PI, TAU, FRAC_1_SQRT_2, FRAC_PI_6, FRAC_PI_2};
 use bevy::pbr::{NotShadowCaster, NotShadowReceiver};
 use bevy::prelude::*;
 use bevy::platform::collections::HashMap;
-use crate::spider_well::mechanics::{PlayerInputs, PLAYER_CLIMB, PlayerEntity};
+use crate::spider_well::mechanics::{PlayerInputs, PLAYER_CLIMB, PlayerEntity, PlayerSwing};
 
 const SPIDER_GREEN: Color = Color::hsl(118.0, 0.7, 0.7);
 const SPIDER_PURPLE: Color = Color::hsl(313.0, 0.5, 0.6);
@@ -58,11 +58,60 @@ const TOOTH_Y: f32 = 0.08;
 const STEP_DISPLACEMENT: f32 = 0.25;
 const CLIMB_CYCLE_TIME: f32 = (STEP_DISPLACEMENT * 2.0) / PLAYER_CLIMB;
 
+const LIMB_STATIC_ANGLE: f32 = PI / 16.0;
+const SWING_LIMB_FACTOR: f32 = 4.0;
+
+pub fn calculate_arm_joints(
+    mut limb_positions: ResMut<LimbPositions>,
+    player_swing: Res<PlayerSwing>,
+    player_inputs: Res<PlayerInputs>
+) {
+    let v_mod = player_swing.angular_v * player_swing.thread_length * SWING_LIMB_FACTOR;
+    for joint in LimbPartType::JOINTS {
+        if joint == LimbPartType::LegJoint && !player_inputs.leaping {
+            continue;
+        };
+        let o = joint.get_root_offset();
+        let a = match joint {
+            LimbPartType::LegJoint => 1.5 * FRAC_PI_6,
+            LimbPartType::LowerArmJoint => 0.5 * FRAC_PI_6,
+            LimbPartType::MiddleArmJoint => -0.5 * FRAC_PI_6,
+            LimbPartType::UpperArmJoint => -1.5 * FRAC_PI_6,
+            _ => 0.0
+        };
+        for side_sign in LimbPartType::LIMB_SIDES {
+            let s = side_sign as f32;
+            for id in LimbPartType::LIMB_IDS {
+                let j_mod = LIMB_STATIC_ANGLE * id as f32;
+                let (cos, sin) = if player_inputs.leaping {
+                    let cos = a.cos();
+                    let sin = a.sin();
+                    (cos, sin)
+                } else {
+                    let cos = (a - j_mod - v_mod * s).cos();
+                    let sin = (a - j_mod - v_mod * s).sin();
+                    (cos, sin)
+                };
+                let l = (id + 1) as f32 * SEGMENT_LENGTH;
+                let limb_part = SpiderLimbPart {
+                    part_type: joint,
+                    segment_id: id,
+                    side: side_sign
+                };
+                limb_positions.hash_map.insert(limb_part, Vec2::new(cos * l * s, (sin * l) + o));
+            };
+        };
+    };
+}
+
 pub fn calculate_leg_joints(
     time: Res<Time>,
     mut limb_positions: ResMut<LimbPositions>,
     player_inputs: Res<PlayerInputs>
 ) {
+    if player_inputs.leaping {
+        return;
+    };
     let mut t = (time.elapsed_secs() % CLIMB_CYCLE_TIME) / CLIMB_CYCLE_TIME;
     let mut t1 = (t + 0.5) % 1.0;
     if player_inputs.y == 0 {
@@ -467,7 +516,8 @@ pub fn spawn_head(
     let head = commands.spawn((
         Mesh3d(head_mesh),
         MeshMaterial3d(spider_materials.get_grey()),
-        Transform::from_xyz(0.0, HEAD_Y, HEAD_Z),
+        Transform::from_xyz(0.0, HEAD_Y, HEAD_Z)
+            .with_rotation(Quat::from_rotation_x(FRAC_PI_6)),
         ChildOf(player_entity.entity)
     )).id();
     let large_sclara_mesh = meshes.add(Sphere::new(LARGE_EYE_RADIUS));

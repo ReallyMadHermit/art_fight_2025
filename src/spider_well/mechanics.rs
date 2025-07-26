@@ -170,9 +170,9 @@ pub fn player_controls(
 
 #[derive(Resource)]
 pub struct PlayerSwing {
-    thread_length: f32,
-    angle: f32,
-    angular_v: f32
+    pub thread_length: f32,
+    pub angle: f32,
+    pub angular_v: f32
 }
 
 #[derive(Resource)]
@@ -285,7 +285,6 @@ pub fn move_player(
     //update transform
     player_transform.translation = player_pos.vec.extend(0.0);
     player_transform.rotation = Quat::from_rotation_z(player_swing.angle);
-    player_transform.rotate_y(time.elapsed_secs() * 0.5);
 }
 
 #[derive(Resource)]

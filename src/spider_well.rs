@@ -14,7 +14,7 @@ use level_layout::{
 pub mod characters;
 use characters::{
     spawn_spider_parts, insert_limb_positions, apply_limb_positions, insert_spider_materials, 
-    spawn_body, spawn_bum, spawn_head, calculate_leg_joints
+    spawn_body, spawn_bum, spawn_head, calculate_leg_joints, calculate_arm_joints
 };
 
 pub struct SpiderWellPlugin;
@@ -50,5 +50,6 @@ impl Plugin for SpiderWellPlugin {
         app.add_systems(Startup, spawn_head.after(insert_spider_materials));
         app.add_systems(Update, apply_limb_positions);
         app.add_systems(Update, calculate_leg_joints);
+        app.add_systems(Update, calculate_arm_joints.before(calculate_leg_joints));
     }
 }
