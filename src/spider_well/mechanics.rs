@@ -154,7 +154,6 @@ pub struct PlayerPos {
     vec: Vec2
 }
 
-// TODO: make the swings slower and less dramatic so they don't skip collisions
 pub fn move_player(
     player_inputs: Res<PlayerInputs>,
     time: Res<Time>,
