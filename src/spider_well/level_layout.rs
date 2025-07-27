@@ -7,14 +7,14 @@ const X_MAX: f32 = LEVEL_WIDTH / 2.0;
 const X_MIN: f32 = -X_MAX;
 pub const DAMSEL_Y: f32 = Stage2::BLOCKS2END - 5.0;
 
-struct Stage1;
+pub struct Stage1;
 impl Stage1 {
     const START: f32 = -2.0;
     const VERTICAL_SPACING: f32 = 5.0;
     const HOLE_RADIUS: f32 = 2.0;
-    const INITIAL_WIDTH: f32 = 1.5;
+    pub const INITIAL_WIDTH: f32 = 1.5;
     const HOLE_WIDENING: f32 = 0.5;
-    const LEVEL_LENGTH: usize = 6;
+    pub const LEVEL_LENGTH: usize = 6;
     const PLATFORM_THICKNESS: f32 = 0.5;
     const END: f32 = Self::START - (Self::VERTICAL_SPACING * (Self::LEVEL_LENGTH - 1) as f32);
     const CHECKPOINT: f32 = Self::END - 2.0;
@@ -36,17 +36,14 @@ pub fn insert_debug_level_assets(
     let cube = meshes.add(Cuboid::from_length(1.0));
     let red_mat = materials.add(StandardMaterial {
         base_color: Color::linear_rgb(1.0, 0.0, 0.0),
-        unlit: true,
         ..default()
     });
     let green_mat = materials.add(StandardMaterial {
         base_color: Color::linear_rgb(0.0, 1.0, 0.0),
-        unlit: true,
         ..default()
     });
     let blue_mat = materials.add(StandardMaterial {
         base_color: Color::linear_rgb(0.0, 0.0, 1.0),
-        unlit: true,
         ..default()
     });
     commands.insert_resource(DebugLevelAssets{
@@ -54,10 +51,16 @@ pub fn insert_debug_level_assets(
     });
 }
 
+#[derive(Resource)]
+pub struct Stage1Gaps {
+    pub vec: Vec<Vec2>
+}
+
 pub fn spawn_stage_1(
     mut commands: Commands,
     assets: Res<DebugLevelAssets>
 ) {
+    let mut gaps = Stage1Gaps{vec: Vec::with_capacity(Stage1::LEVEL_LENGTH)};
     for i in 0..Stage1::LEVEL_LENGTH {
         let sign = if i % 2 == 0 {
             1.0f32
@@ -91,8 +94,10 @@ pub fn spawn_stage_1(
                 Vec3::new(right_length, Stage1::PLATFORM_THICKNESS, LEVEL_DEPTH)),
             CollisionRect::new(right_length, Stage1::PLATFORM_THICKNESS)
         ));
+        gaps.vec.push(Vec2::new(hole_x, hole_y));
     };
     spawn_checkpoint(Stage1::CHECKPOINT, &mut commands);
+    commands.insert_resource(gaps);
 }
 
 struct Stage2;

@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 pub mod mechanics;
 use mechanics::{
-    debug_scene_setup, spawn_player, insert_simple_resources, player_controls, move_player,
+    spawn_player, insert_simple_resources, player_controls, move_player,
     insert_webbing_assets, web_updater, camera_mover, CollisionEvent, collision_rect_checker,
     move_obstacles, checkpoint_checker, damsel_checker
 };
@@ -17,11 +17,15 @@ use characters::{
     spawn_body, spawn_bum, spawn_head, calculate_leg_joints, calculate_arm_joints
 };
 
+pub mod environment;
+use environment::{
+    spawn_lights, spawn_camera
+};
+
 pub struct SpiderWellPlugin;
 impl Plugin for SpiderWellPlugin {
     fn build(&self, app: &mut App) {
         // mechanics
-        app.add_systems(Startup, debug_scene_setup);
         app.add_systems(Startup, insert_simple_resources);
         app.add_systems(Startup, insert_webbing_assets);
         app.add_systems(Startup, spawn_player.after(insert_webbing_assets));
@@ -51,5 +55,9 @@ impl Plugin for SpiderWellPlugin {
         app.add_systems(Update, apply_limb_positions);
         app.add_systems(Update, calculate_leg_joints);
         app.add_systems(Update, calculate_arm_joints.before(calculate_leg_joints));
+        
+        // environment
+        app.add_systems(Startup, spawn_camera);
+        app.add_systems(Startup, spawn_lights.after(spawn_stage_1));
     }
 }

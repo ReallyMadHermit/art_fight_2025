@@ -265,6 +265,7 @@ pub fn insert_spider_materials(
 ) {
     let green = materials.add(StandardMaterial {
         base_color: SPIDER_GREEN,
+        unlit: true,
         ..default()
     });
     let purple = materials.add(StandardMaterial {
@@ -273,6 +274,7 @@ pub fn insert_spider_materials(
     });
     let grey = materials.add(StandardMaterial {
         base_color: SPIDER_GREY,
+        perceptual_roughness: 0.7,
         ..default()
     });
     let black = materials.add(StandardMaterial {
@@ -281,6 +283,7 @@ pub fn insert_spider_materials(
     });
     let eyes = materials.add(StandardMaterial {
         base_color: SPIDER_EYES,
+        unlit: true,
         ..default()
     });
     let teeth = materials.add(StandardMaterial {

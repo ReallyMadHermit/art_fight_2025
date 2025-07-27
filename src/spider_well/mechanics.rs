@@ -1,9 +1,9 @@
 use std::f32::consts::TAU;
-use bevy::{core_pipeline::{bloom::Bloom, tonemapping::Tonemapping}, prelude::*, render::camera::ScalingMode};
+use bevy::prelude::*;
 use crate::common::RectChecks;
 use crate::spider_well::level_layout::{LEVEL_WIDTH, DAMSEL_Y};
 
-const THREAD_LENGTH_START: f32 = 3.0;
+const THREAD_LENGTH_START: f32 = 2.0;
 const THREAD_RADIUS: f32 = 0.0125;
 const STICKING_POINT_RADIUS: f32 = 0.2;
 const PLAYER_RADIUS: f32 = 0.5;
@@ -14,39 +14,8 @@ pub const PLAYER_CLIMB: f32 = 2.0;
 const PLAYER_DRAG: f32 = 0.10;
 const STATIC_DRAG: f32 = 1.0;
 const CAMERA_RATE: f32 = 3.0;
-const HANG_POINT: Vec2 = Vec2{ x: 0.0, y: THREAD_LENGTH_START};
+const HANG_POINT: Vec2 = Vec2{ x: 0.0, y: THREAD_LENGTH_START + 1.0};
 const HURT_RETURN_TIME: f32 = 0.5;
-
-pub fn debug_scene_setup(
-    mut commands: Commands,
-) {
-    commands.spawn(
-        (
-            Camera3d::default(),
-            Camera {
-                hdr: true,
-                ..default()
-            },
-            Projection::Orthographic(
-                OrthographicProjection {
-                    scaling_mode: ScalingMode::FixedHorizontal {viewport_width: LEVEL_WIDTH},
-                    ..OrthographicProjection::default_3d()
-                }
-            ),
-            Transform::from_xyz(0.0, -3.0, LEVEL_WIDTH)
-                .looking_at(Vec3::new(0.0, -3.0, 0.0), Vec3::Y),
-            Bloom::OLD_SCHOOL,
-            Tonemapping::AcesFitted,
-            Msaa::Sample4,
-            POVCamera
-        )
-    );
-    commands.insert_resource(AmbientLight{
-        color: Color::WHITE,
-        brightness: 2000.0,
-        ..default()
-    });
-}
 
 #[derive(Component)]
 pub struct POVCamera;
@@ -84,9 +53,9 @@ pub fn spawn_player(
     });
     let mesh = meshes.add(Sphere::new(PLAYER_RADIUS));
     let entity = commands.spawn((
-        Mesh3d(mesh),
-        MeshMaterial3d(mat),
-        Transform::default(),
+        // Mesh3d(mesh),
+        // MeshMaterial3d(mat),
+        Transform::from_xyz(0.0, -2.0, 0.0),
         PlayerMarker
     )).id();
     commands.spawn((
@@ -307,12 +276,12 @@ pub fn insert_webbing_assets(
 ) {
     let material = materials.add(StandardMaterial {
         base_color: Color::WHITE,
-        perceptual_roughness: 0.0,
-        reflectance: 1.0,
-        clearcoat: 0.0,
-        clearcoat_perceptual_roughness: 0.0,
-        anisotropy_rotation: 0.0,
-        anisotropy_strength: 1.0,
+        // perceptual_roughness: 0.0,
+        // reflectance: 1.0,
+        // clearcoat: 0.0,
+        // clearcoat_perceptual_roughness: 0.0,
+        // anisotropy_rotation: 0.0,
+        // anisotropy_strength: 1.0,
         ..default()
     });
     let thread_mesh = meshes.add(Cylinder::new(THREAD_RADIUS, 1.0));
