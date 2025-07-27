@@ -55,7 +55,7 @@ impl Plugin for SpiderWellPlugin {
         app.add_systems(Update, apply_limb_positions);
         app.add_systems(Update, calculate_leg_joints);
         app.add_systems(Update, calculate_arm_joints.before(calculate_leg_joints));
-        
+
         // environment
         app.add_systems(Startup, spawn_camera);
         app.add_systems(Startup, spawn_lights.after(spawn_stage_1));

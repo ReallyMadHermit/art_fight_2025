@@ -6,7 +6,7 @@ use crate::spider_well::level_layout::{LEVEL_WIDTH, DAMSEL_Y};
 const THREAD_LENGTH_START: f32 = 2.0;
 const THREAD_RADIUS: f32 = 0.0125;
 const STICKING_POINT_RADIUS: f32 = 0.2;
-const PLAYER_RADIUS: f32 = 0.5;
+pub const PLAYER_RADIUS: f32 = 0.5;
 const GRAVITY: f32 = 0.625;
 const LEAP_GRAVITY: f32 = 20.0;
 const PLAYER_LEAN: f32 = 0.05;
@@ -308,7 +308,7 @@ pub struct CollisionEvent;
 
 #[derive(Component)]
 pub struct CollisionRect{
-    collision_radi: Vec2
+    pub collision_radi: Vec2
 } impl CollisionRect {
     pub fn new(width: f32, height: f32) -> Self {
         Self {collision_radi: Vec2::new(width/2.0, height/2.0) + PLAYER_RADIUS}

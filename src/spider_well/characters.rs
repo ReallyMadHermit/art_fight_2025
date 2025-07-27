@@ -67,16 +67,21 @@ pub fn calculate_arm_joints(
     player_inputs: Res<PlayerInputs>
 ) {
     let v_mod = player_swing.angular_v * player_swing.thread_length * SWING_LIMB_FACTOR;
+    let f = if player_inputs.leaping {
+        0.0
+    } else {
+        0.5
+    };
     for joint in LimbPartType::JOINTS {
         if joint == LimbPartType::LegJoint && !player_inputs.leaping {
             continue;
         };
         let o = joint.get_root_offset();
         let a = match joint {
-            LimbPartType::LegJoint => 1.5 * FRAC_PI_6,
-            LimbPartType::LowerArmJoint => 0.5 * FRAC_PI_6,
-            LimbPartType::MiddleArmJoint => -0.5 * FRAC_PI_6,
-            LimbPartType::UpperArmJoint => -1.5 * FRAC_PI_6,
+            LimbPartType::LegJoint => (1.5 + f) * FRAC_PI_6,
+            LimbPartType::LowerArmJoint => (0.5 + f) * FRAC_PI_6,
+            LimbPartType::MiddleArmJoint => (-0.5 + f) * FRAC_PI_6,
+            LimbPartType::UpperArmJoint => (-1.5 + f) * FRAC_PI_6,
             _ => 0.0
         };
         for side_sign in LimbPartType::LIMB_SIDES {

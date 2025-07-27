@@ -25,7 +25,8 @@ pub struct DebugLevelAssets {
     cube: Handle<Mesh>,
     red_mat: Handle<StandardMaterial>,
     green_mat: Handle<StandardMaterial>,
-    blue_mat: Handle<StandardMaterial>
+    blue_mat: Handle<StandardMaterial>,
+    black_mat: Handle<StandardMaterial>
 }
 
 pub fn insert_debug_level_assets(
@@ -46,8 +47,14 @@ pub fn insert_debug_level_assets(
         base_color: Color::linear_rgb(0.0, 0.0, 1.0),
         ..default()
     });
+    let black_mat = materials.add(StandardMaterial {
+        base_color: Color::linear_rgb(0.3, 0.3, 0.3),
+        metallic: 0.7,
+        perceptual_roughness: 0.3,
+        ..default()
+    });
     commands.insert_resource(DebugLevelAssets{
-        cube, red_mat, green_mat, blue_mat
+        cube, red_mat, green_mat, blue_mat, black_mat
     });
 }
 
@@ -67,11 +74,12 @@ pub fn spawn_stage_1(
         } else {
             -1.0f32
         };
-        let mat = match i % 3 {
-            0 => assets.red_mat.clone(),
-            1 => assets.green_mat.clone(),
-            _ => assets.blue_mat.clone()
-        };
+        // let mat = match i % 3 {
+        //     0 => assets.red_mat.clone(),
+        //     1 => assets.green_mat.clone(),
+        //     _ => assets.blue_mat.clone()
+        // };
+        let mat = assets.black_mat.clone();
         let hole_x = sign * (Stage1::INITIAL_WIDTH + Stage1::HOLE_WIDENING * i as f32);
         let hole_y = Stage1::START - i as f32 * Stage1::VERTICAL_SPACING;
         let left_edge = hole_x - (Stage1::HOLE_RADIUS);
