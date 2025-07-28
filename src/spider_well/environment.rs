@@ -184,7 +184,7 @@ pub fn spawn_lamps(
     lamp_materials: Res<LampMaterials>
 ) {
     let intensity = 20000.0;
-    let range = 8.0;
+    let range = 10.0;
     let radius = 0.25;
     let mesh = meshes.add(Sphere::new(radius));
     let lamp_locations = [
@@ -193,10 +193,10 @@ pub fn spawn_lamps(
         Vec3::new(1.2, -10.5, LIGHT_Z),
         Vec3::new(-1.9, -16.0, LIGHT_Z),
         Vec3::new(2.5, -21.6, LIGHT_Z),
-        Vec3::new(-3.2, -28.3, LIGHT_Z),
+        Vec3::new(-3.6, -28.8, LIGHT_Z),
         Vec3::new(4.5, -30.2, LIGHT_Z),
         Vec3::new(0.0, -33.7, LIGHT_Z),
-        Vec3::new(-4.4, -38.8, LIGHT_Z),
+        Vec3::new(-1.8, -37.5, LIGHT_Z),
         Vec3::new(3.5, -39.4, LIGHT_Z)
     ];
     for vec in lamp_locations {
