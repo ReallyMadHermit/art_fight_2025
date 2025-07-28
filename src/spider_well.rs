@@ -23,6 +23,8 @@ use environment::{
     manage_the_the_spirits
 };
 
+pub mod state_manager;
+
 pub struct SpiderWellPlugin;
 impl Plugin for SpiderWellPlugin {
     fn build(&self, app: &mut App) {
