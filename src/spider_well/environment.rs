@@ -1,4 +1,4 @@
-use std::f32::consts::{FRAC_PI_2, FRAC_PI_6, PI, TAU};
+use std::f32::consts::{FRAC_PI_2, FRAC_PI_4, FRAC_PI_6, PI, TAU};
 use bevy::core_pipeline::bloom::Bloom;
 use bevy::core_pipeline::tonemapping::Tonemapping;
 use bevy::pbr::{NotShadowCaster, NotShadowReceiver};
@@ -11,13 +11,18 @@ const FOV: f32 = PI / 8.0;
 
 const LIGHT_Z: f32 = (LEVEL_DEPTH / 2.0) + 0.5;
 const LIGHT_COLOR: Color = Color::linear_rgb(1.0, 0.8, 0.4);
-const BULB_Z: f32 = -(LEVEL_DEPTH / 2.0);
+const BULB_Z: f32 = -(LEVEL_DEPTH / 2.0) + 0.25;
 pub const LEVEL_DEPTH: f32 = 2.0;
 pub const ORB_RADIUS: f32 = 0.05;
-pub const PLAYER_ORBIT_RADIUS: f32 = 0.5;
 pub const ORB_ORBIT_RADIUS: f32 = 0.35;
 pub const ORB_A: f32 = TAU / 3.0;
 pub const ORB_SPIN_SPEED: f32 = FRAC_PI_2;
+
+const BULB_RADIUS: f32 = 0.25;
+const LIGHT_POST_DISTANCE: f32 = 2.0;
+const LIGHT_POST_LENGTH: f32 = 6.0;
+const LIGHT_POST_Z: f32 = -1.0;
+const LIGHT_POST_RADIUS: f32 = BULB_RADIUS;
 
 pub fn spawn_camera(
     mut commands: Commands,
@@ -161,20 +166,12 @@ pub struct LampMaterials {
 
 struct LampSpecs {
     root_angle: f32,
-    root_z: f32,
     bulb_location: Vec2,
-    post_length_factor: f32,
-    post_radius: f32,
-    bulb_radius: f32,
-    light_intensity: f32,
-    light_range: f32
 } impl LampSpecs {
     pub fn new(
-        root_angle: f32, root_z: f32, bulb_location: Vec2, post_length_factor: f32,
-        post_radius: f32, bulb_radius: f32, light_intensity: f32, light_range: f32
+        root_angle: f32, bulb_location: Vec2
     ) -> Self {
-        Self {root_angle, root_z, bulb_location, post_length_factor,
-            post_radius, bulb_radius, light_intensity, light_range}
+        Self {root_angle, bulb_location}
     }
 }
 
@@ -185,13 +182,14 @@ pub fn spawn_lamps(
 ) {
     let intensity = 20000.0;
     let range = 10.0;
-    let radius = 0.25;
-    let mesh = meshes.add(Sphere::new(radius));
+    let radius = 0.15;
+    let bulb_mesh = meshes.add(Sphere::new(radius));
+    let post_mesh = meshes.add(Cone::new(LIGHT_POST_RADIUS, LIGHT_POST_LENGTH));
     let lamp_locations = [
         Vec3::new(2.8, -3.2, LIGHT_Z),
         Vec3::new(-2.9, -5.2, LIGHT_Z),
         Vec3::new(1.2, -10.5, LIGHT_Z),
-        Vec3::new(-1.9, -16.0, LIGHT_Z),
+        Vec3::new(-2.3, -16.0, LIGHT_Z),
         Vec3::new(2.5, -21.6, LIGHT_Z),
         Vec3::new(-3.6, -28.8, LIGHT_Z),
         Vec3::new(4.5, -30.2, LIGHT_Z),
@@ -199,11 +197,44 @@ pub fn spawn_lamps(
         Vec3::new(-1.8, -37.5, LIGHT_Z),
         Vec3::new(3.5, -39.4, LIGHT_Z)
     ];
-    for vec in lamp_locations {
+    let root_angles = [
+        -FRAC_PI_2 + 0.6,
+        -FRAC_PI_2 - 0.8,
+        FRAC_PI_2 - 0.1,
+        PI - 0.4,
+        FRAC_PI_2 - 0.1,
+        PI - FRAC_PI_4 + 0.1,
+        -FRAC_PI_2 + FRAC_PI_4 + 0.1,
+        -0.0,
+        PI - 0.2,
+        0.3
+    ];
+    for i in 0..10 {
+        let bulb_vec = lamp_locations[i].xy().extend(BULB_Z);
+        let light_post_vec = {
+            let a = root_angles[i];
+            let x = a.cos() * LIGHT_POST_DISTANCE + bulb_vec.x;
+            let y = a.sin() * LIGHT_POST_DISTANCE + bulb_vec.y;
+            Vec3::new(x, y, LIGHT_POST_Z)
+        };
+        let mut lamp_transform = Transform::from_translation(light_post_vec)
+            .looking_at(bulb_vec, Vec3::Z);
+        lamp_transform.rotation *= Quat::from_rotation_x(-FRAC_PI_2);
+        if i != 7 {
+            commands.spawn((
+                Mesh3d(post_mesh.clone()),
+                MeshMaterial3d(lamp_materials.post_material.clone()),
+                lamp_transform,
+                NotShadowCaster,
+                NotShadowReceiver
+            ));   
+        };
         commands.spawn((
-            Mesh3d(mesh.clone()),
+            Mesh3d(bulb_mesh.clone()),
             MeshMaterial3d(lamp_materials.bulb_material.clone()),
-            Transform::from_translation(vec.xy().extend(BULB_Z))
+            Transform::from_translation(bulb_vec),
+            NotShadowCaster,
+            NotShadowReceiver
         ));
         commands.spawn((
             PointLight {
@@ -215,7 +246,7 @@ pub fn spawn_lamps(
                 shadow_map_near_z: radius,
                 ..default()
             },
-            Transform::from_translation(vec)
+            Transform::from_translation(lamp_locations[i])
         ));
     }
 }
