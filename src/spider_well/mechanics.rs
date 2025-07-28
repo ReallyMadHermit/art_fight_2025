@@ -73,11 +73,12 @@ pub fn insert_simple_resources(
     commands.insert_resource(PlayerPos{vec: Vec2::ZERO});
     commands.insert_resource(PlayerSwing{thread_length: THREAD_LENGTH_START, angle: 0.0, angular_v: 0.0});
     commands.insert_resource(PlayerInputs{
-        x: 0, y: 0, leaping: false, scheme: ControlScheme::Wasd
+        x: 0, y: 0, leaping: false,
     });
     commands.insert_resource(PlayerVelocity {vec: Vec2::ZERO});
     commands.insert_resource(LastCheckPoint {pos: Vec2::ZERO, hurt_pos: Vec2::ZERO});
     commands.insert_resource(HurtReturn {f32: 0.0});
+    commands.insert_resource(IsIdle{bool: true});
 }
 
 #[derive(Eq, PartialEq, Copy, Clone)]
@@ -89,11 +90,15 @@ pub enum ControlScheme {
 }
 
 #[derive(Resource)]
+pub struct IsIdle {
+    bool: bool
+}
+
+#[derive(Resource)]
 pub struct PlayerInputs {
     pub x: i8,
     pub y: i8,
-    pub leaping: bool,
-    pub scheme: ControlScheme
+    pub leaping: bool
 }
 
 pub fn player_controls(
@@ -103,22 +108,21 @@ pub fn player_controls(
     let mut x = 0;
     let mut y = 0;
     let mut leaping = false;
-    let mut scheme = ControlScheme::None;
     let pressed = keys.get_pressed();
     for key in pressed {
         match key {
-            KeyCode::KeyW => {y+=1; scheme=ControlScheme::Wasd;},
-            KeyCode::KeyA => {x+=1; scheme=ControlScheme::Wasd;},
-            KeyCode::KeyS => {y-=1; scheme=ControlScheme::Wasd;},
-            KeyCode::KeyD => {x-=1; scheme=ControlScheme::Wasd;},
-            KeyCode::ArrowUp => {y+=1; scheme=ControlScheme::Arrows;},
-            KeyCode::ArrowLeft => {x+=1; scheme=ControlScheme::Arrows;},
-            KeyCode::ArrowDown => {y-=1; scheme=ControlScheme::Arrows;},
-            KeyCode::ArrowRight => {x-=1; scheme=ControlScheme::Arrows;},
-            KeyCode::Numpad8 => {y+=1; scheme=ControlScheme::Numpad;},
-            KeyCode::Numpad4 => {x+=1; scheme=ControlScheme::Numpad;},
-            KeyCode::Numpad5 => {y-=1; scheme=ControlScheme::Numpad;},
-            KeyCode::Numpad6 => {x-=1; scheme=ControlScheme::Numpad;},
+            KeyCode::KeyW => {y+=1;},
+            KeyCode::KeyA => {x+=1;},
+            KeyCode::KeyS => {y-=1;},
+            KeyCode::KeyD => {x-=1;},
+            KeyCode::ArrowUp => {y+=1;},
+            KeyCode::ArrowLeft => {x+=1;},
+            KeyCode::ArrowDown => {y-=1;},
+            KeyCode::ArrowRight => {x-=1;},
+            KeyCode::Numpad8 => {y+=1;},
+            KeyCode::Numpad4 => {x+=1;},
+            KeyCode::Numpad5 => {y-=1;},
+            KeyCode::Numpad6 => {x-=1;},
             KeyCode::Space => {leaping=true; break;},
             KeyCode::Numpad0 => {leaping=true; break;},
             KeyCode::Insert => {leaping=true; break;},
@@ -131,9 +135,6 @@ pub fn player_controls(
     };
     player_inputs.x = x;
     player_inputs.y = y;
-    if scheme != ControlScheme::None {
-        player_inputs.scheme = scheme;
-    };
 }
 
 #[derive(Resource)]
@@ -161,7 +162,8 @@ pub fn move_player(
     mut player_pos: ResMut<PlayerPos>,
     mut query: Query<&mut Transform, With<PlayerMarker>>,
     checkpoint: Res<LastCheckPoint>,
-    mut hurt_return: ResMut<HurtReturn>
+    mut hurt_return: ResMut<HurtReturn>,
+    mut is_idle: ResMut<IsIdle>
 ) {
     // resource variables
     let dt = time.delta_secs();
@@ -191,6 +193,7 @@ pub fn move_player(
 
     // leaping logic
     if player_inputs.leaping {
+        is_idle.bool = false;
         // {
         //     let x = player_pos.vec.x;
         //     let y = player_pos.vec.y;
@@ -216,25 +219,29 @@ pub fn move_player(
         return;
     };
 
-    // rope-crawl
+    // rope-crawl input handling
     if player_inputs.y > 0 {
         let l = player_swing.thread_length - PLAYER_CLIMB * dt;
         player_swing.angular_v *= player_swing.thread_length / l;
         player_swing.thread_length = l;
+        is_idle.bool = false;
     } else if player_inputs.y < 0 {
         let l = player_swing.thread_length + PLAYER_CLIMB * dt;
         player_swing.angular_v *= player_swing.thread_length / l;
         player_swing.thread_length = l;
+        is_idle.bool = false;
     };
 
-    // input handling
+    // swing input handling
     let d = (PLAYER_LEAN * dt * player_swing.angle.cos()) / player_swing.thread_length;
     if player_inputs.x > 0 {
         player_swing.angular_v -= d;
         player_swing.angular_v -= player_swing.angular_v * dt * PLAYER_DRAG;
+        is_idle.bool = false;
     } else if player_inputs.x < 0 {
         player_swing.angular_v += d;
         player_swing.angular_v -= player_swing.angular_v * dt * PLAYER_DRAG;
+        is_idle.bool = false;
     } else {
         player_swing.angular_v -= player_swing.angular_v * dt * STATIC_DRAG;
     };
@@ -256,7 +263,12 @@ pub fn move_player(
     
     //update transform
     player_transform.translation = player_pos.vec.extend(0.0);
-    player_transform.rotation = Quat::from_rotation_z(player_swing.angle);
+    if is_idle.bool {
+        player_transform.rotation = Quat::from_rotation_y(time.elapsed_secs());
+    } else {
+        player_transform.rotation = Quat::from_rotation_z(player_swing.angle);
+    };
+    
 }
 
 #[derive(Resource)]
