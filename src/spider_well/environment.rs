@@ -329,6 +329,7 @@ pub fn spawn_the_spirits(
                 ChildOf(entity),
                 NotShadowReceiver,
                 NotShadowCaster,
+                Visibility::Visible,
             ));
         };
         i += 1;
