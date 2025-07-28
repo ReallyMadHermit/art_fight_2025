@@ -1,7 +1,8 @@
 use std::f32::consts::TAU;
 use bevy::prelude::*;
 use crate::common::RectChecks;
-use crate::spider_well::level_layout::{LEVEL_WIDTH, DAMSEL_Y};
+use crate::spider_well::environment::SpiritsAcquired;
+use crate::spider_well::level_layout::LEVEL_WIDTH;
 
 const THREAD_LENGTH_START: f32 = 2.0;
 const THREAD_RADIUS: f32 = 0.0125;
@@ -91,7 +92,7 @@ pub enum ControlScheme {
 
 #[derive(Resource)]
 pub struct IsIdle {
-    bool: bool
+    pub bool: bool
 }
 
 #[derive(Resource)]
@@ -151,7 +152,7 @@ pub struct PlayerVelocity {
 
 #[derive(Resource)]
 pub struct PlayerPos {
-    vec: Vec2
+    pub vec: Vec2
 }
 
 pub fn move_player(
@@ -462,8 +463,12 @@ pub fn spawn_checkpoint(
 pub fn checkpoint_checker(
     player_pos: Res<PlayerPos>,
     mut last_check_point: ResMut<LastCheckPoint>,
-    mut query: Query<&mut CheckPoint>
+    mut query: Query<&mut CheckPoint>,
+    is_ridle: Res<IsIdle>
 ) {
+    if is_ridle.bool {
+        return;
+    };
     let py = player_pos.vec.y;
     for mut checkpoint in &mut query {
         if checkpoint.checked {
@@ -476,3 +481,112 @@ pub fn checkpoint_checker(
     };
 }
 
+pub fn insert_state_resources(
+    mut commands: Commands,
+) {
+    
+    let mut s = String::with_capacity(6);
+    s = format!("{:.2}", 0.00);
+    commands.insert_resource(SpeedRunTimer{start: 0.0, running: false, string: s});
+    commands.insert_resource(ImWinningDad{bool: false});
+    commands.insert_resource(ResetTimer{held: 0.0});
+}
+
+#[derive(Resource)]
+pub struct ImWinningDad{
+    bool: bool
+}
+
+pub fn are_ya_winning_son(
+    spirits_acquired: Res<SpiritsAcquired>,
+    player_pos: Res<PlayerPos>,
+    mut im_winning: ResMut<ImWinningDad>
+) {
+    if !im_winning.bool && spirits_acquired.bool && player_pos.vec.y > 0.0 {
+        im_winning.bool = true;
+    };
+}
+
+#[derive(Resource)]
+pub struct SpeedRunTimer {
+    start: f32,
+    running: bool,
+    string: String
+}
+
+pub fn speed_run_timer(
+    time: Res<Time>,
+    is_idle: Res<IsIdle>,
+    im_winning_dad: Res<ImWinningDad>,
+    mut speed_run_timer: ResMut<SpeedRunTimer>
+) {
+    if !speed_run_timer.running && !im_winning_dad.bool && !is_idle.bool {  // if not idle and not running, start the speedrun timer
+        speed_run_timer.running = true;
+        speed_run_timer.start = time.elapsed_secs();
+    } else if im_winning_dad.bool && speed_run_timer.running {  // if winning, stop the timer
+        let t = time.elapsed_secs() - speed_run_timer.start;
+        speed_run_timer.string = format!("{:.2}", t);
+        speed_run_timer.running = false;
+    } else if speed_run_timer.running {  // if running, update the timer
+        let t = time.elapsed_secs() - speed_run_timer.start;
+        speed_run_timer.string = format!("{:.2}", t);
+    };
+    println!("{}", speed_run_timer.string);
+}
+
+#[derive(Resource)]
+pub struct ResetTimer {
+    held: f32
+}
+
+#[derive(Event)]
+pub struct ResetEvent;
+
+pub fn are_we_resetting(
+    mut reset_timer: ResMut<ResetTimer>,
+    keys: Res<ButtonInput<KeyCode>>,
+    mut reset_writer: EventWriter<ResetEvent>,
+    time: Res<Time>
+) {
+    if keys.pressed(KeyCode::KeyR) {
+        reset_timer.held += time.delta_secs()
+    } else {
+        reset_timer.held = 0.0
+    };
+    if reset_timer.held > 2.0 {
+        reset_timer.held = 0.0;
+        reset_writer.write(ResetEvent);
+    };
+}
+
+pub fn we_are_indeed_resetting(
+    mut event_reader: EventReader<ResetEvent>,
+    mut hurt_return: ResMut<HurtReturn>,
+    mut last_check_point: ResMut<LastCheckPoint>,
+    mut query: Query<&mut CheckPoint>,
+    mut spirits_acquired: ResMut<SpiritsAcquired>,
+    mut im_winning_dad: ResMut<ImWinningDad>,
+    mut speed_run_timer: ResMut<SpeedRunTimer>,
+    mut is_idle: ResMut<IsIdle>,
+    player_pos: Res<PlayerPos>
+) {
+    for event in event_reader.read() {
+        // last checkpoint & hurt return
+        last_check_point.pos = Vec2::new(0.0, 1.0);
+        last_check_point.hurt_pos = player_pos.vec;
+        hurt_return.f32 = HURT_RETURN_TIME;
+        // reset checkpoints
+        for mut checkpoint in &mut query {
+            checkpoint.checked = false;
+        }
+        // bools
+        spirits_acquired.bool = false;
+        im_winning_dad.bool = false;
+        is_idle.bool = true;
+        
+        // reset timer
+        speed_run_timer.running = false;
+        speed_run_timer.string = format!("{:.2}", 0.00);
+        speed_run_timer.start = 0.0;
+    }
+}

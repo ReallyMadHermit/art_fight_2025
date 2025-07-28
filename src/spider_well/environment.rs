@@ -3,11 +3,9 @@ use bevy::core_pipeline::bloom::Bloom;
 use bevy::core_pipeline::tonemapping::Tonemapping;
 use bevy::pbr::{NotShadowCaster, NotShadowReceiver};
 use bevy::prelude::*;
-use bevy::prelude::Visibility::Visible;
-use bevy::reflect::Array;
 use bevy::render::camera::ScalingMode;
-use crate::spider_well::level_layout::{Stage1, LEVEL_WIDTH, SlidingBlocks2, DAMSEL_Y};
-use crate::spider_well::mechanics::{POVCamera, PlayerEntity};
+use crate::spider_well::level_layout::{LEVEL_WIDTH, SlidingBlocks2, DAMSEL_Y};
+use crate::spider_well::mechanics::{POVCamera, PlayerEntity, PlayerPos, IsIdle};
 
 const FOV: f32 = PI / 8.0;
 
@@ -340,16 +338,27 @@ pub fn spawn_the_spirits(
 
 #[derive(Resource)]
 pub struct SpiritsAcquired {
-    bool: bool
+    pub bool: bool
+}
+
+pub fn acquire_the_orbs(
+    player_pos: Res<PlayerPos>,
+    mut spirits_acquired: ResMut<SpiritsAcquired>,
+    is_idle: Res<IsIdle>
+) {
+    if !spirits_acquired.bool && !is_idle.bool && player_pos.vec.y < DAMSEL_Y {
+        spirits_acquired.bool = true;
+    };
 }
 
 pub fn manage_the_the_spirits(
     time: Res<Time>,
-    orb_query: Query<(&mut Transform, &TheSpirits), Without<BigOrb>>,
+    orb_query: Query<(&mut Transform, &mut Visibility, &TheSpirits), Without<BigOrb>>,
     spirits_acquired: Res<SpiritsAcquired>
 ) {
-    for (mut transform, spirits) in orb_query {
-        if spirits_acquired.bool == spirits.orb_owned {
+    for (mut transform, mut vis, spirits) in orb_query {
+        let is_visible = vis.clone() == Visibility::Visible;
+        if !is_visible {
             continue
         };
         let a = spirits.id as f32 * ORB_A + time.elapsed_secs() * ORB_SPIN_SPEED;
@@ -357,5 +366,18 @@ pub fn manage_the_the_spirits(
         let sin = a.sin() * ORB_ORBIT_RADIUS;
         transform.translation.x = cos;
         transform.translation.z = sin;
+    };
+}
+
+pub fn orb_vis_system(
+    orb_query: Query<(&mut Visibility, &TheSpirits)>,
+    spirits_acquired: Res<SpiritsAcquired>
+) {
+    for (mut vis, spirits) in orb_query {
+        let is_visible = vis.clone() == Visibility::Visible;
+        let should_be_visible = spirits_acquired.bool != spirits.orb_owned;
+        if is_visible != should_be_visible {
+            vis.toggle_visible_hidden();
+        };
     };
 }
