@@ -6,7 +6,7 @@ use crate::spider_well::environment::LEVEL_DEPTH;
 pub const LEVEL_WIDTH: f32 = 16.0;
 const X_MAX: f32 = LEVEL_WIDTH / 2.0;
 const X_MIN: f32 = -X_MAX;
-pub const DAMSEL_Y: f32 = Stage2::BLOCKS2END - 5.0;
+pub const DAMSEL_Y: f32 = Stage2::BLOCKS2END - 2.0;
 
 pub struct Stage1;
 impl Stage1 {

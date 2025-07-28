@@ -78,7 +78,6 @@ pub fn insert_simple_resources(
     commands.insert_resource(PlayerVelocity {vec: Vec2::ZERO});
     commands.insert_resource(LastCheckPoint {pos: Vec2::ZERO, hurt_pos: Vec2::ZERO});
     commands.insert_resource(HurtReturn {f32: 0.0});
-    commands.insert_resource(DamselAcquired{bool: false});
 }
 
 #[derive(Eq, PartialEq, Copy, Clone)]
@@ -192,11 +191,11 @@ pub fn move_player(
 
     // leaping logic
     if player_inputs.leaping {
-        {
-            let x = player_pos.vec.x;
-            let y = player_pos.vec.y;
-            println!("{}, {}", x, y);
-        };
+        // {
+        //     let x = player_pos.vec.x;
+        //     let y = player_pos.vec.y;
+        //     println!("{}, {}", x, y);
+        // };
         // apply velocity
         player_velocity.vec.y -= LEAP_GRAVITY * dt;
         let d = player_velocity.vec * dt * PLAYER_DRAG;
@@ -465,17 +464,3 @@ pub fn checkpoint_checker(
     };
 }
 
-#[derive(Resource)]
-pub struct DamselAcquired {
-    bool: bool
-}
-
-pub fn damsel_checker(
-    player_pos: Res<PlayerPos>,
-    mut damsel_acquired: ResMut<DamselAcquired>,
-) {
-    if !damsel_acquired.bool && player_pos.vec.y < DAMSEL_Y {
-        damsel_acquired.bool = true;
-        println!("Damsel acquired!");
-    };
-}

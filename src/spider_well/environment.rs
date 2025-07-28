@@ -1,11 +1,13 @@
-use std::f32::consts::{FRAC_PI_6, PI};
+use std::f32::consts::{FRAC_PI_2, FRAC_PI_6, PI, TAU};
 use bevy::core_pipeline::bloom::Bloom;
 use bevy::core_pipeline::tonemapping::Tonemapping;
 use bevy::pbr::{NotShadowCaster, NotShadowReceiver};
 use bevy::prelude::*;
+use bevy::prelude::Visibility::Visible;
+use bevy::reflect::Array;
 use bevy::render::camera::ScalingMode;
-use crate::spider_well::level_layout::{Stage1, LEVEL_WIDTH, SlidingBlocks2};
-use crate::spider_well::mechanics::POVCamera;
+use crate::spider_well::level_layout::{Stage1, LEVEL_WIDTH, SlidingBlocks2, DAMSEL_Y};
+use crate::spider_well::mechanics::{POVCamera, PlayerEntity};
 
 const FOV: f32 = PI / 8.0;
 
@@ -13,6 +15,11 @@ const LIGHT_Z: f32 = (LEVEL_DEPTH / 2.0) + 0.5;
 const LIGHT_COLOR: Color = Color::linear_rgb(1.0, 0.8, 0.4);
 const BULB_Z: f32 = -(LEVEL_DEPTH / 2.0);
 pub const LEVEL_DEPTH: f32 = 2.0;
+pub const ORB_RADIUS: f32 = 0.05;
+pub const PLAYER_ORBIT_RADIUS: f32 = 0.5;
+pub const ORB_ORBIT_RADIUS: f32 = 0.35;
+pub const ORB_A: f32 = TAU / 3.0;
+pub const ORB_SPIN_SPEED: f32 = FRAC_PI_2;
 
 pub fn spawn_camera(
     mut commands: Commands,
@@ -247,5 +254,107 @@ pub fn spawn_sliding_lights(
             Transform::from_xyz(0.0, 0.0, 1.0),
             ChildOf(entity)
         ));
+    };
+}
+
+#[derive(Component)]
+pub struct BigOrb;
+
+#[derive(Component)]
+pub struct TheSpirits {
+    id: u8,
+    orb_owned: bool
+}
+
+pub fn spawn_the_spirits(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    player_entity: Res<PlayerEntity>
+) {
+    let central_mesh = meshes.add(Sphere::new(0.15));
+    let material = materials.add(StandardMaterial{
+        base_color: Color::linear_rgba(1.0, 1.0, 1.0, 1.0),
+        emissive: LinearRgba::new(1.0, 1.0, 1.0, 1.0),
+        ..default()
+    });
+    let big_orb = commands.spawn((
+        Mesh3d(central_mesh),
+        MeshMaterial3d(material),
+        TheSpirits{id: 0, orb_owned: true},
+        Transform::from_xyz(0.0, DAMSEL_Y - 0.5, 0.0),
+        PointLight {
+            color: LIGHT_COLOR,
+            intensity: 10000.0,
+            range: 8.0,
+            radius: 0.15,
+            shadows_enabled: true,
+            shadow_map_near_z: 0.15,
+            ..default()
+        },
+        NotShadowReceiver,
+        NotShadowCaster,
+        Visibility::Visible,
+        BigOrb
+    )).id();
+    let mut i = 0u8;
+    let orb_mesh = meshes.add(Sphere::new(ORB_RADIUS));
+    let sphere_colors = [
+        Color::linear_rgba(1.0, 0.0, 0.0, 1.0),
+        Color::linear_rgba(0.0, 1.0, 0.0, 1.0),
+        Color::linear_rgba(0.0, 0.0, 1.0, 1.0)
+    ];
+    for color in sphere_colors {
+        let material = materials.add(StandardMaterial{
+            base_color: color,
+            emissive: color.to_linear(),
+            ..default()
+        });
+        for entity in [big_orb, player_entity.entity] {
+            let o = entity == big_orb;
+            commands.spawn((
+                Mesh3d(orb_mesh.clone()),
+                MeshMaterial3d(material.clone()),
+                TheSpirits{id: i, orb_owned: o},
+                PointLight {
+                    color,
+                    intensity: 1000.0,
+                    range: 1.0,
+                    radius: 0.1,
+                    shadows_enabled: true,
+                    shadow_map_near_z: 0.15,
+                    ..default()
+                },
+                Transform::default(),
+                ChildOf(entity),
+                NotShadowReceiver,
+                NotShadowCaster,
+            ));
+        };
+        i += 1;
+    };
+    commands.insert_resource(SpiritsAcquired{bool: false});
+}
+
+
+#[derive(Resource)]
+pub struct SpiritsAcquired {
+    bool: bool
+}
+
+pub fn manage_the_the_spirits(
+    time: Res<Time>,
+    orb_query: Query<(&mut Transform, &TheSpirits), Without<BigOrb>>,
+    spirits_acquired: Res<SpiritsAcquired>
+) {
+    for (mut transform, spirits) in orb_query {
+        if spirits_acquired.bool == spirits.orb_owned {
+            continue
+        };
+        let a = spirits.id as f32 * ORB_A + time.elapsed_secs() * ORB_SPIN_SPEED;
+        let cos = a.cos() * ORB_ORBIT_RADIUS;
+        let sin = a.sin() * ORB_ORBIT_RADIUS;
+        transform.translation.x = cos;
+        transform.translation.z = sin;
     };
 }
