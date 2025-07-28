@@ -270,29 +270,35 @@ pub fn insert_spider_materials(
 ) {
     let green = materials.add(StandardMaterial {
         base_color: SPIDER_GREEN,
-        unlit: true,
+        emissive: SPIDER_GREEN.to_linear(),
         ..default()
     });
     let purple = materials.add(StandardMaterial {
         base_color: SPIDER_PURPLE,
+        perceptual_roughness: 1.0,
+        reflectance: 0.0,
         ..default()
     });
     let grey = materials.add(StandardMaterial {
         base_color: SPIDER_GREY,
-        perceptual_roughness: 0.7,
+        perceptual_roughness: 1.0,
+        reflectance: 0.0,
         ..default()
     });
     let black = materials.add(StandardMaterial {
         base_color: SPIDER_BLACK,
+        perceptual_roughness: 1.0,
         ..default()
     });
     let eyes = materials.add(StandardMaterial {
         base_color: SPIDER_EYES,
-        unlit: true,
+        emissive: SPIDER_EYES.to_linear(),
         ..default()
     });
     let teeth = materials.add(StandardMaterial {
         base_color: Color::WHITE,
+        reflectance: 1.0,
+        perceptual_roughness: 0.0,
         ..default()
     });
     commands.insert_resource(
