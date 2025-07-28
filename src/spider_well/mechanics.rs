@@ -6,7 +6,7 @@ use crate::spider_well::level_layout::{LEVEL_WIDTH, DAMSEL_Y};
 const THREAD_LENGTH_START: f32 = 2.0;
 const THREAD_RADIUS: f32 = 0.0125;
 const STICKING_POINT_RADIUS: f32 = 0.2;
-pub const PLAYER_RADIUS: f32 = 0.5;
+pub const PLAYER_RADIUS: f32 = 0.45;
 const GRAVITY: f32 = 0.625;
 const LEAP_GRAVITY: f32 = 20.0;
 const PLAYER_LEAN: f32 = 0.05;
@@ -192,6 +192,11 @@ pub fn move_player(
 
     // leaping logic
     if player_inputs.leaping {
+        {
+            let x = player_pos.vec.x;
+            let y = player_pos.vec.y;
+            println!("{}, {}", x, y);
+        };
         // apply velocity
         player_velocity.vec.y -= LEAP_GRAVITY * dt;
         let d = player_velocity.vec * dt * PLAYER_DRAG;

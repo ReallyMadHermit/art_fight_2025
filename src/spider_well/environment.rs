@@ -4,14 +4,15 @@ use bevy::core_pipeline::tonemapping::Tonemapping;
 use bevy::pbr::{NotShadowCaster, NotShadowReceiver};
 use bevy::prelude::*;
 use bevy::render::camera::ScalingMode;
-use crate::spider_well::level_layout::{Stage1, LEVEL_WIDTH, Stage1Gaps};
+use crate::spider_well::level_layout::{Stage1, LEVEL_WIDTH, SlidingBlocks2};
 use crate::spider_well::mechanics::POVCamera;
 
 const FOV: f32 = PI / 8.0;
 
-const LIGHT_Z: f32 = 1.5;
+const LIGHT_Z: f32 = (LEVEL_DEPTH / 2.0) + 0.5;
 const LIGHT_COLOR: Color = Color::linear_rgb(1.0, 0.8, 0.4);
-const BULB_Z: f32 = -0.5;
+const BULB_Z: f32 = -(LEVEL_DEPTH / 2.0);
+pub const LEVEL_DEPTH: f32 = 2.0;
 
 pub fn spawn_camera(
     mut commands: Commands,
@@ -67,38 +68,42 @@ pub fn spawn_camera(
             perceptual_roughness: 1.0,
             ..default()
         })),
-        Transform::from_xyz(0.0, 0.0, -LEVEL_WIDTH -0.5),
+        Transform::from_xyz(0.0, 0.0, -LEVEL_WIDTH - (LEVEL_DEPTH / 2.0)),
         ChildOf(camera),
         NotShadowCaster
     ));
 }
 
-pub fn spawn_lights(
+pub fn spawn_first_lamp(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-    gaps: Res<Stage1Gaps>
+    mut materials: ResMut<Assets<StandardMaterial>>
 ) {
+    // commands.insert_resource(AmbientLight{
+    //     color: Color::WHITE,
+    //     brightness: 100.0,
+    //     ..default()
+    // });
     commands.insert_resource(AmbientLight{
         color: Color::BLACK,
         brightness: 0.0,
         ..default()
     });
     commands.insert_resource(ClearColor(Color::BLACK));
-    for vec in &gaps.vec {
-        commands.spawn((
-            PointLight {
-                color: LIGHT_COLOR,
-                intensity: 20000.0,
-                range: 12.0,
-                radius: 0.5,
-                shadows_enabled: true,
-                shadow_map_near_z: 0.25,
-                ..default()
-            },
-            Transform::from_translation(vec.extend(LIGHT_Z))
-        ));
-    }
+    // for vec in &gaps.vec {
+    //     commands.spawn((
+    //         PointLight {
+    //             color: LIGHT_COLOR,
+    //             intensity: 20000.0,
+    //             range: 12.0,
+    //             radius: 0.5,
+    //             shadows_enabled: true,
+    //             shadow_map_near_z: 0.25,
+    //             ..default()
+    //         },
+    //         Transform::from_translation(vec.extend(LIGHT_Z))
+    //     ));
+    // };
     let light_mat = materials.add(StandardMaterial {
         base_color: LIGHT_COLOR,
         unlit: true,
@@ -140,11 +145,11 @@ pub fn spawn_lights(
         Transform::from_xyz(-1.2, 1.0, -0.5).with_rotation(Quat::from_rotation_z(-FRAC_PI_6)),
         NotShadowCaster
     ));
-    commands.insert_resource(LampAssets{bulb_material: light_mat, post_material: post_mat});
+    commands.insert_resource(LampMaterials {bulb_material: light_mat, post_material: post_mat});
 }
 
 #[derive(Resource)]
-pub struct LampAssets {
+pub struct LampMaterials {
     bulb_material: Handle<StandardMaterial>,
     post_material: Handle<StandardMaterial>
 }
@@ -160,10 +165,87 @@ struct LampSpecs {
     light_range: f32
 } impl LampSpecs {
     pub fn new(
-        root_angle: f32, root_z: f32, bulb_location: Vec2, post_length_factor: f32, 
+        root_angle: f32, root_z: f32, bulb_location: Vec2, post_length_factor: f32,
         post_radius: f32, bulb_radius: f32, light_intensity: f32, light_range: f32
     ) -> Self {
-        Self {root_angle, root_z, bulb_location, post_length_factor, 
+        Self {root_angle, root_z, bulb_location, post_length_factor,
             post_radius, bulb_radius, light_intensity, light_range}
     }
+}
+
+pub fn spawn_lamps(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    lamp_materials: Res<LampMaterials>
+) {
+    let intensity = 20000.0;
+    let range = 8.0;
+    let radius = 0.25;
+    let mesh = meshes.add(Sphere::new(radius));
+    let lamp_locations = [
+        Vec3::new(2.8, -3.2, LIGHT_Z),
+        Vec3::new(-2.9, -5.2, LIGHT_Z),
+        Vec3::new(1.2, -10.5, LIGHT_Z),
+        Vec3::new(-1.9, -16.0, LIGHT_Z),
+        Vec3::new(2.5, -21.6, LIGHT_Z),
+        Vec3::new(-3.2, -28.3, LIGHT_Z),
+        Vec3::new(4.5, -30.2, LIGHT_Z),
+        Vec3::new(0.0, -33.7, LIGHT_Z),
+        Vec3::new(-4.4, -38.8, LIGHT_Z),
+        Vec3::new(3.5, -39.4, LIGHT_Z)
+    ];
+    for vec in lamp_locations {
+        commands.spawn((
+            Mesh3d(mesh.clone()),
+            MeshMaterial3d(lamp_materials.bulb_material.clone()),
+            Transform::from_translation(vec.xy().extend(BULB_Z))
+        ));
+        commands.spawn((
+            PointLight {
+                color: LIGHT_COLOR,
+                intensity,
+                range,
+                radius,
+                shadows_enabled: true,
+                shadow_map_near_z: radius,
+                ..default()
+            },
+            Transform::from_translation(vec)
+        ));
+    }
+}
+
+pub fn spawn_sliding_lights(
+    sliding_blocks: Res<SlidingBlocks2>,
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    lamp_materials: Res<LampMaterials>
+) {
+    let intensity = 10000.0;
+    let range = 10.0;
+    let radius = 0.10;
+    let mesh = meshes.add(Sphere::new(radius));
+    for &entity in &sliding_blocks.vec {
+        commands.spawn((
+            Mesh3d(mesh.clone()),
+            MeshMaterial3d(lamp_materials.bulb_material.clone()),
+            Transform::from_xyz(0.0, 0.0, 0.5),
+            ChildOf(entity),
+            NotShadowCaster,
+            NotShadowReceiver
+        ));
+        commands.spawn((
+            PointLight {
+                color: LIGHT_COLOR,
+                intensity,
+                range,
+                radius,
+                shadows_enabled: true,
+                shadow_map_near_z: radius,
+                ..default()
+            },
+            Transform::from_xyz(0.0, 0.0, 1.0),
+            ChildOf(entity)
+        ));
+    };
 }

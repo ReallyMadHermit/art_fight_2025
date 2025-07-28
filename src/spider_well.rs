@@ -19,7 +19,7 @@ use characters::{
 
 pub mod environment;
 use environment::{
-    spawn_lights, spawn_camera
+    spawn_first_lamp, spawn_camera, spawn_lamps, spawn_sliding_lights
 };
 
 pub struct SpiderWellPlugin;
@@ -58,6 +58,8 @@ impl Plugin for SpiderWellPlugin {
 
         // environment
         app.add_systems(Startup, spawn_camera);
-        app.add_systems(Startup, spawn_lights.after(spawn_stage_1));
+        app.add_systems(Startup, spawn_first_lamp.after(spawn_stage_2));
+        app.add_systems(Startup, spawn_lamps.after(spawn_first_lamp));
+        app.add_systems(Startup, spawn_sliding_lights.after(spawn_lamps));
     }
 }
