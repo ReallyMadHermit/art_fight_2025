@@ -46,7 +46,7 @@ pub enum SegmentedAnchor {
     Right,
 }
 
-#[derive(Component)]
+#[derive(Component)]  // TODO: add a right-padded bool
 pub struct SegmentedDisplayString {
     pub string: String,
     font_size: f32,
@@ -175,23 +175,27 @@ pub fn spawn_segmented_string(
     display_assets: SegmentedDisplayAssets,
     commands: &mut Commands
 ) -> Entity {
-    let chars = spawn_digits(
+    // spawn digits
+    let digits = spawn_digits(
         commands, segmented_string.digit_count, segmented_string.font_size
     );
-    for &char_entity in &chars {
+    // spawn segments
+    for &digit_entity in &digits {
         spawn_segments(
             commands, &display_assets, segmented_string.font_size,
-            char_entity, segmented_string.casts_shadows
+            digit_entity, segmented_string.casts_shadows
         );
     };
+    // spawn string
     let segmented_entity = commands.spawn((
         segmented_string,
         display_assets,
         transfrom,
         Visibility::Visible
     )).id();
-    for char in chars {
-        commands.entity(char).insert(ChildOf(segmented_entity));
+    // associated digits with string
+    for digit in digits {
+        commands.entity(digit).insert(ChildOf(segmented_entity));
     };
     segmented_entity
 }
@@ -282,18 +286,13 @@ pub fn update_segmented_strings(
         for c in segmented_string.string.to_ascii_uppercase().chars() {
             character_truths.push(c);
         };
-        for &c in &character_truths {
-            println!("{}", c);
-            println!("char as u32: {}", c as u32);
-        }
         // prep for digit iteration
         for &digit_entity in string_children {
             let (mut digit, digit_children) = 
                 digit_query.get_mut(digit_entity).unwrap();
-            let c = digit.digit;
             
             // this checks to see, per character, if the digits are accurate to the string
-            if character_truths[digit.index as usize] != c {
+            if character_truths[digit.index as usize] != digit.digit {
                 digit.digit = character_truths[digit.index as usize];
                 
                 // lookup the correct sequence to represent the character
@@ -308,7 +307,7 @@ pub fn update_segmented_strings(
                         if should_be_lit {  // if it should be lit, light it
                             segment.lit = true;
                             commands.entity(segment_entity).insert(MeshMaterial3d(assets.lit_material.clone()));
-                        } else if is_lit {  // if not, unlight it
+                        } else {  // if not, unlight it
                             segment.lit = false;
                             commands.entity(segment_entity).insert(MeshMaterial3d(assets.unlit_material.clone()));
                         };

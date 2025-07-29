@@ -486,7 +486,7 @@ pub fn insert_state_resources(
 ) {
     
     let mut s = String::with_capacity(6);
-    s = format!("{:.2}", 0.00);
+    s = "000".to_string();
     commands.insert_resource(SpeedRunTimer{start: 0.0, running: false, string: s});
     commands.insert_resource(ImWinningDad{bool: false});
     commands.insert_resource(ResetTimer{held: 0.0});
@@ -511,7 +511,7 @@ pub fn are_ya_winning_son(
 pub struct SpeedRunTimer {
     start: f32,
     running: bool,
-    string: String
+    pub string: String
 }
 
 pub fn speed_run_timer(
@@ -525,13 +525,13 @@ pub fn speed_run_timer(
         speed_run_timer.start = time.elapsed_secs();
     } else if im_winning_dad.bool && speed_run_timer.running {  // if winning, stop the timer
         let t = time.elapsed_secs() - speed_run_timer.start;
-        speed_run_timer.string = format!("{:.2}", t);
+        speed_run_timer.string = format!("{}", t as i32);
         speed_run_timer.running = false;
     } else if speed_run_timer.running {  // if running, update the timer
         let t = time.elapsed_secs() - speed_run_timer.start;
-        speed_run_timer.string = format!("{:.2}", t);
+        speed_run_timer.string = format!("{}", t as i32);
     };
-    println!("{}", speed_run_timer.string);
+    // println!("{}", speed_run_timer.string);
 }
 
 #[derive(Resource)]
@@ -586,7 +586,7 @@ pub fn we_are_indeed_resetting(
         
         // reset timer
         speed_run_timer.running = false;
-        speed_run_timer.string = format!("{:.2}", 0.00);
+        speed_run_timer.string = "000".to_string();
         speed_run_timer.start = 0.0;
     }
 }

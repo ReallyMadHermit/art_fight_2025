@@ -6,7 +6,7 @@ use bevy::prelude::*;
 use bevy::render::camera::ScalingMode;
 use crate::segmented_displays::{spawn_segmented_string, SegmentedDisplayAssets, SegmentedDisplayString};
 use crate::spider_well::level_layout::{LEVEL_WIDTH, SlidingBlocks2, DAMSEL_Y};
-use crate::spider_well::mechanics::{POVCamera, PlayerEntity, PlayerPos, IsIdle};
+use crate::spider_well::mechanics::{POVCamera, PlayerEntity, PlayerPos, IsIdle, SpeedRunTimer};
 
 const FOV: f32 = PI / 8.0;
 
@@ -72,6 +72,8 @@ pub fn spawn_camera(
     //         POVCamera
     //     )
     // ).id();
+    let timer = spawn_timer(&mut commands, &mut meshes, &mut materials);
+    commands.entity(timer).insert(ChildOf(camera));
     commands.spawn((
         Mesh3d(meshes.add(Cuboid::new(LEVEL_WIDTH, LEVEL_WIDTH, 0.0125))),
         MeshMaterial3d(materials.add(StandardMaterial {
@@ -83,6 +85,7 @@ pub fn spawn_camera(
         ChildOf(camera),
         NotShadowCaster
     ));
+
 }
 
 pub fn spawn_first_lamp(
@@ -385,8 +388,7 @@ pub fn acquire_the_orbs(
 
 pub fn manage_the_the_spirits(
     time: Res<Time>,
-    orb_query: Query<(&mut Transform, &mut Visibility, &TheSpirits), Without<BigOrb>>,
-    spirits_acquired: Res<SpiritsAcquired>
+    orb_query: Query<(&mut Transform, &mut Visibility, &TheSpirits), Without<BigOrb>>
 ) {
     for (mut transform, mut vis, spirits) in orb_query {
         let is_visible = vis.clone() == Visibility::Visible;
@@ -414,6 +416,9 @@ pub fn orb_vis_system(
     };
 }
 
+// #[derive(Component)]
+// pub struct SpinnyTitle;
+
 pub fn spawn_title(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -439,9 +444,66 @@ pub fn spawn_title(
     );
     let s = "SPIDER WELL";
     let segmented_string = SegmentedDisplayString::new(
-        s, font_size, '0', s.len() as u8, false
+        s, font_size, 'O', s.len() as u8, false
     );
-    spawn_segmented_string(
+    let s = spawn_segmented_string(
         Transform::from_xyz(0.0, 4.0, 1.0), segmented_string, assets, &mut commands
     );
+    // commands.entity(s).insert(SpinnyTitle);
+}
+
+// pub fn make_it_spin(
+//     query: Query<&mut Transform, With<SpinnyTitle>>,
+//     time: Res<Time>
+// ) {
+//     for mut t in query {
+//         t.rotate_y(time.delta_secs());
+//     };
+// }
+
+#[derive(Component)]
+pub struct TimerText;
+
+pub fn spawn_timer(
+    commands: &mut Commands,
+    meshes: &mut ResMut<Assets<Mesh>>,
+    materials: &mut ResMut<Assets<StandardMaterial>>
+) -> Entity {
+    let font_size = 0.532;
+    let lit_material = materials.add(
+        StandardMaterial{
+            base_color: Color::WHITE,
+            unlit: true,
+            ..default()
+        }
+    );
+    let unlit_material = materials.add(
+        StandardMaterial{
+            base_color: Color::BLACK,
+            unlit: true,
+            ..default()
+        }
+    );
+    let assets = SegmentedDisplayAssets::new(
+        font_size, lit_material, unlit_material, meshes
+    );
+    let s = "000";
+    let segmented_string = SegmentedDisplayString::new(
+        s, font_size, '0', 3, false
+    );
+    let entity = spawn_segmented_string(
+        Transform::from_xyz((-LEVEL_WIDTH / 2.0) + 0.5, 3.5, -1.0), segmented_string, assets, commands
+    );
+    commands.entity(entity).insert(TimerText);
+    entity
+}
+
+pub fn update_timer_text(
+    timer: Res<SpeedRunTimer>,
+
+    mut query: Query<&mut SegmentedDisplayString, With<TimerText>>
+) {
+    for mut segmented_display in query {
+        segmented_display.string = timer.string.clone();
+    };
 }

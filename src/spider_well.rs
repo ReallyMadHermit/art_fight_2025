@@ -22,7 +22,7 @@ use characters::{
 pub mod environment;
 use environment::{
     spawn_first_lamp, spawn_camera, spawn_lamps, spawn_sliding_lights, spawn_the_spirits,
-    manage_the_the_spirits, acquire_the_orbs, orb_vis_system, spawn_title
+    manage_the_the_spirits, acquire_the_orbs, orb_vis_system, spawn_title, update_timer_text
 };
 
 use crate::segmented_displays::update_segmented_strings;
@@ -78,6 +78,8 @@ impl Plugin for SpiderWellPlugin {
         app.add_systems(Update, acquire_the_orbs);
         app.add_systems(Update, orb_vis_system);
         app.add_systems(Startup, spawn_title);
+        app.add_systems(Update, update_timer_text);
+        // app.add_systems(Update, make_it_spin);
         
         // segmented displays
         app.add_systems(Update, update_segmented_strings);
