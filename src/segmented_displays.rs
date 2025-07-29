@@ -59,10 +59,10 @@ pub struct SegmentedDisplayString {
     ) -> Self {
         Self {string: string.to_string(), font_size, padding_char, digit_count, casts_shadows }
     }
-    pub fn get_rendered_length(char_count: u8, char_height: f32) -> f32 {
-        let l = char_count as f32 * char_height * 0.5;
-        if char_count > 1 {
-            let s = (char_count - 1) as f32 * char_height * CHAR_SPACING;
+    pub fn get_rendered_length(digit_count: u8, font_size: f32) -> f32 {
+        let l = digit_count as f32 * font_size * 0.5;
+        if digit_count > 1 {
+            let s = (digit_count - 1) as f32 * font_size * CHAR_SPACING;
             s + l
         } else {
             l
@@ -72,7 +72,7 @@ pub struct SegmentedDisplayString {
 
 #[derive(Component)]
 pub struct SegmentDigit {
-    char: char,
+    digit: char,
     index: u8
 } impl SegmentDigit {
     // the segments 0 through 5 are the outermost segments, clockwise, from the top
@@ -81,7 +81,7 @@ pub struct SegmentDigit {
     // 11, 12, and 13 are below the horizontal line, left to right
     pub fn get_sequence(&self) -> [bool; 14] {
         let mut off = [false; 14];
-        let segs = match self.char {
+        let segs = match self.digit {
             '1' => "1,2,10",
             '2' => "0,1,7,6,4,3",
             '3' => "0,1,2,3,7",
@@ -118,7 +118,7 @@ pub struct SegmentDigit {
             'X' => "8,10,11,13",
             'Y' => "8,10,12",
             'Z' => "0,3,10,11",
-            _ => return off
+            _ => {return off}
         };
         let split = segs.split(',');
         for s in split {
@@ -213,7 +213,7 @@ fn spawn_digits(
     for i in 0..digit_count {
         let entity = commands.spawn((
             SegmentDigit {
-                char: '0',
+                digit: ' ',
                 index: i
             },
             Transform::from_xyz(start_x + dx * i as f32, 0.0, 0.0),
@@ -279,18 +279,22 @@ pub fn update_segmented_strings(
         
         // whereas just letting it go will mean anything longer than char count gets truncated
         // ... hypothetically
-        for c in segmented_string.string.to_uppercase().chars() {
+        for c in segmented_string.string.to_ascii_uppercase().chars() {
             character_truths.push(c);
         };
+        for &c in &character_truths {
+            println!("{}", c);
+            println!("char as u32: {}", c as u32);
+        }
         // prep for digit iteration
         for &digit_entity in string_children {
             let (mut digit, digit_children) = 
                 digit_query.get_mut(digit_entity).unwrap();
-            let c = digit.char;
+            let c = digit.digit;
             
             // this checks to see, per character, if the digits are accurate to the string
             if character_truths[digit.index as usize] != c {
-                digit.char = character_truths[digit.index as usize];
+                digit.digit = character_truths[digit.index as usize];
                 
                 // lookup the correct sequence to represent the character
                 let seq = digit.get_sequence();
