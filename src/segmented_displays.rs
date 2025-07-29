@@ -1,16 +1,16 @@
 use bevy::prelude::*;
-use std::f32::consts::{FRAC_PI_2, FRAC_PI_3};
+use std::f32::consts::{FRAC_PI_2, PI};
 use std::process::id;
 use bevy::pbr::{NotShadowCaster, NotShadowReceiver};
 
 const SEGMENT_LENGTH: f32 = 0.42;
 const SEGMENT_HALF_LENGTH: f32 = 0.18;
-const SEGMENT_DIAMETER: f32 = 0.03;
+const SEGMENT_DIAMETER: f32 = 0.05;
 const SPACING_MAX: f32 = 0.48;
 const SPACING_MID: f32 = 0.24;
 const SPACING_MIN: f32 = 0.12;
-const CHAR_SPACING: f32 = SPACING_MIN;
-const ANGLED_ANGLE: f32 = FRAC_PI_3;
+const CHAR_SPACING: f32 = 0.2;
+const ANGLED_ANGLE: f32 = PI / 10.0;
 
 #[derive(Component)]
 pub struct SegmentedDisplayAssets {
@@ -63,12 +63,13 @@ pub enum SegmentedAnchor {
 pub struct SegmentedString {
     pub string: String,
     char_height: f32,
-    char_count: u8
+    char_count: u8,
+    casts_shadows: bool
 } impl SegmentedString {
     pub fn new(
-        string: &str, char_height: f32, char_count: u8
+        string: &str, char_height: f32, char_count: u8, casts_shadows: bool
     ) -> Self {
-        Self {string: string.to_string(), char_height, char_count }
+        Self {string: string.to_string(), char_height, char_count, casts_shadows }
     }
     pub fn get_rendered_length(char_count: u8, char_height: f32) -> f32 {
         let l = char_count as f32 * char_height * 0.5;
@@ -106,7 +107,7 @@ pub struct SegmentedChar {
             'A' => "4,5,0,1,2,6,7",
             'B' => "0,1,2,3,7,9,12",
             'C' => "0,5,4,3",
-            'D' => "0,1,2,3,7,9,12",
+            'D' => "0,1,2,3,9,12",
             'E' => "0,5,4,3,6,7",
             'F' => "0,5,4,6,7",
             'G' => "0,5,4,3,2,7",
@@ -165,8 +166,8 @@ pub struct Segment {
         let a = match id {
             0 | 3 | 6 | 7 => 0.0,
             1 | 2 | 4 | 5 | 9 | 12 => FRAC_PI_2,
-            10 | 11 => ANGLED_ANGLE,
-            8 | 13 => ANGLED_ANGLE * 2.0,
+            10 | 11 => FRAC_PI_2 - ANGLED_ANGLE,
+            8 | 13 => FRAC_PI_2 + ANGLED_ANGLE,
             _ => 0.0
         };
         Transform::from_xyz(x * char_height, y * char_height, 0.0)
@@ -190,12 +191,16 @@ pub fn spawn_segmented_string(
         commands, segmented_string.char_count, segmented_string.char_height
     );
     for &char_entity in &chars {
-        spawn_segments(commands, &display_assets, segmented_string.char_height, char_entity)
+        spawn_segments(
+        commands, &display_assets, segmented_string.char_height, 
+        char_entity, segmented_string.casts_shadows
+        );
     };
     let segmented_entity = commands.spawn((
         segmented_string,
         display_assets,
-        transfrom
+        transfrom,
+        Visibility::Visible
     )).id();
     for char in chars {
         commands.entity(char).insert(ChildOf(segmented_entity));
@@ -223,7 +228,8 @@ fn spawn_chars(
                 char: '0',
                 index: i
             },
-            Transform::from_xyz(start_x + dx * i as f32, 0.0, 0.0)
+            Transform::from_xyz(start_x + dx * i as f32, 0.0, 0.0),
+            Visibility::Inherited
         )).id();
         chars.push(entity)
     };
@@ -234,7 +240,8 @@ fn spawn_segments(
     commands: &mut Commands,
     assets: &SegmentedDisplayAssets,
     char_height: f32,
-    parent: Entity
+    parent: Entity,
+    casts_shadows: bool
 ) {
     for i in 0..14u8 {
         let segment = Segment{id: i, lit: false};
@@ -244,26 +251,40 @@ fn spawn_segments(
         } else {
             assets.long_mesh.clone()
         };
-        commands.spawn((
+        let e = commands.spawn((
             Mesh3d(mesh),
             MeshMaterial3d(assets.unlit_material.clone()),
             segment,
             transform,
             ChildOf(parent),
             NotShadowReceiver,
-            NotShadowCaster
-        ));
+            Visibility::Inherited
+        )).id();
+        if !casts_shadows {
+            commands.entity(e).insert(NotShadowCaster);
+        };
     };
 }
 
 pub fn update_segmented_displays(
     mut commands: Commands,
-    mut segmented_string_query: Query<(&SegmentedString, &SegmentedDisplayAssets, &Children)>,
+    segmented_string_query: Query<(&SegmentedString, &SegmentedDisplayAssets, &Children)>,
     mut char_query: Query<(&mut SegmentedChar, &Children)>,
     mut segment_query: Query<(&mut Segment)>
 ) {
     for (segmented_string, assets, string_children) in segmented_string_query {
-        let mut character_truths: Vec<char> = Vec::with_capacity(segmented_string.char_count as usize);
+        let d = segmented_string.char_count as i8 - segmented_string.string.len() as i8;
+        let cap = if d < 0 {
+            segmented_string.string.len()
+        } else {
+            segmented_string.char_count as usize
+        };
+        let mut character_truths: Vec<char> = Vec::with_capacity(cap);
+        // if d > 0 {
+        //     for _ in 0..d {
+        //         character_truths.push(' ');
+        //     };
+        // };
         for c in segmented_string.string.to_uppercase().chars() {
             character_truths.push(c);
         };

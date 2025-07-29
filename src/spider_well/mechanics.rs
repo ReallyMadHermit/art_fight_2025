@@ -3,7 +3,6 @@ use bevy::prelude::*;
 use crate::common::RectChecks;
 use crate::spider_well::environment::SpiritsAcquired;
 use crate::spider_well::level_layout::LEVEL_WIDTH;
-use crate::segmented_displays::{SegmentedString, SegmentedDisplayAssets, spawn_segmented_string};
 
 const THREAD_LENGTH_START: f32 = 2.0;
 const THREAD_RADIUS: f32 = 0.0125;
@@ -590,36 +589,4 @@ pub fn we_are_indeed_resetting(
         speed_run_timer.string = format!("{:.2}", 0.00);
         speed_run_timer.start = 0.0;
     }
-}
-
-pub fn spawn_some_text(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>
-) {
-    let font_size = 0.5f32;
-    let lit_material = materials.add(
-        StandardMaterial{
-            base_color: Color::WHITE,
-            unlit: true,
-            ..default()
-        }
-    );
-    let unlit_material = materials.add(
-        StandardMaterial{
-            base_color: Color::BLACK,
-            unlit: true,
-            ..default()
-        }
-    );
-    let assets = SegmentedDisplayAssets::new(
-        font_size, lit_material, unlit_material, &mut meshes
-    );
-    let s = "OH YEAH MR CRABS";
-    let segmented_string = SegmentedString::new(
-        s, font_size, s.len() as u8
-    );
-    spawn_segmented_string(
-        Transform::default(), segmented_string, assets, &mut commands
-    );
 }

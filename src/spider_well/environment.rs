@@ -4,6 +4,7 @@ use bevy::core_pipeline::tonemapping::Tonemapping;
 use bevy::pbr::{NotShadowCaster, NotShadowReceiver};
 use bevy::prelude::*;
 use bevy::render::camera::ScalingMode;
+use crate::segmented_displays::{spawn_segmented_string, SegmentedDisplayAssets, SegmentedString};
 use crate::spider_well::level_layout::{LEVEL_WIDTH, SlidingBlocks2, DAMSEL_Y};
 use crate::spider_well::mechanics::{POVCamera, PlayerEntity, PlayerPos, IsIdle};
 
@@ -138,7 +139,7 @@ pub fn spawn_first_lamp(
             shadow_map_near_z: 0.3,
             ..default()
         },
-        Transform::from_xyz(0.0, 3.0, 1.5)
+        Transform::from_xyz(0.0, 3.0, 2.0)
     ));
     //lamp bulb
     commands.spawn((
@@ -411,4 +412,36 @@ pub fn orb_vis_system(
             vis.toggle_visible_hidden();
         };
     };
+}
+
+pub fn spawn_title(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>
+) {
+    let font_size = 1.0f32;
+    let lit_material = materials.add(
+        StandardMaterial{
+            base_color: Color::WHITE,
+            unlit: true,
+            ..default()
+        }
+    );
+    let unlit_material = materials.add(
+        StandardMaterial{
+            base_color: Color::BLACK,
+            unlit: true,
+            ..default()
+        }
+    );
+    let assets = SegmentedDisplayAssets::new(
+        font_size, lit_material, unlit_material, &mut meshes
+    );
+    let s = "SPIDER WELL";
+    let segmented_string = SegmentedString::new(
+        s, font_size, s.len() as u8, false
+    );
+    spawn_segmented_string(
+        Transform::from_xyz(0.0, 4.0, 1.0), segmented_string, assets, &mut commands
+    );
 }

@@ -5,7 +5,7 @@ use mechanics::{
     spawn_player, insert_simple_resources, player_controls, move_player,
     insert_webbing_assets, web_updater, camera_mover, CollisionEvent, collision_rect_checker,
     move_obstacles, checkpoint_checker, insert_state_resources, are_ya_winning_son,
-    speed_run_timer, ResetEvent, are_we_resetting, we_are_indeed_resetting, spawn_some_text
+    speed_run_timer, ResetEvent, are_we_resetting, we_are_indeed_resetting
 };
 
 pub mod level_layout;
@@ -22,7 +22,7 @@ use characters::{
 pub mod environment;
 use environment::{
     spawn_first_lamp, spawn_camera, spawn_lamps, spawn_sliding_lights, spawn_the_spirits,
-    manage_the_the_spirits, acquire_the_orbs, orb_vis_system
+    manage_the_the_spirits, acquire_the_orbs, orb_vis_system, spawn_title
 };
 
 use crate::segmented_displays::update_segmented_displays;
@@ -77,9 +77,9 @@ impl Plugin for SpiderWellPlugin {
         app.add_systems(Update, manage_the_the_spirits.after(acquire_the_orbs));
         app.add_systems(Update, acquire_the_orbs);
         app.add_systems(Update, orb_vis_system);
+        app.add_systems(Startup, spawn_title);
         
         // segmented displays
         app.add_systems(Update, update_segmented_displays);
-        app.add_systems(Startup, spawn_some_text);
     }
 }
