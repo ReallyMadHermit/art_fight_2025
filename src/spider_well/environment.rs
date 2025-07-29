@@ -227,7 +227,7 @@ pub fn spawn_lamps(
                 lamp_transform,
                 NotShadowCaster,
                 NotShadowReceiver
-            ));   
+            ));
         };
         commands.spawn((
             Mesh3d(bulb_mesh.clone()),

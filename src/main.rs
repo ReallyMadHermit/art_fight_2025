@@ -4,6 +4,8 @@ use rodio::OutputStream;
 mod common;
 use common::AudioSystem;
 
+mod segmented_displays;
+
 // mod dino_run;
 // use dino_run::mechanics::DinoRunPlugin;
 
