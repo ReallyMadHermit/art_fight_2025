@@ -25,7 +25,7 @@ use environment::{
     manage_the_the_spirits, acquire_the_orbs, orb_vis_system, spawn_title
 };
 
-use crate::segmented_displays::update_segmented_displays;
+use crate::segmented_displays::update_segmented_strings;
 
 pub struct SpiderWellPlugin;
 impl Plugin for SpiderWellPlugin {
@@ -80,6 +80,6 @@ impl Plugin for SpiderWellPlugin {
         app.add_systems(Startup, spawn_title);
         
         // segmented displays
-        app.add_systems(Update, update_segmented_displays);
+        app.add_systems(Update, update_segmented_strings);
     }
 }

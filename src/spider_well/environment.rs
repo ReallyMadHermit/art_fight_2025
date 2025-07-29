@@ -4,7 +4,7 @@ use bevy::core_pipeline::tonemapping::Tonemapping;
 use bevy::pbr::{NotShadowCaster, NotShadowReceiver};
 use bevy::prelude::*;
 use bevy::render::camera::ScalingMode;
-use crate::segmented_displays::{spawn_segmented_string, SegmentedDisplayAssets, SegmentedString};
+use crate::segmented_displays::{spawn_segmented_string, SegmentedDisplayAssets, SegmentedDisplayString};
 use crate::spider_well::level_layout::{LEVEL_WIDTH, SlidingBlocks2, DAMSEL_Y};
 use crate::spider_well::mechanics::{POVCamera, PlayerEntity, PlayerPos, IsIdle};
 
@@ -438,8 +438,8 @@ pub fn spawn_title(
         font_size, lit_material, unlit_material, &mut meshes
     );
     let s = "SPIDER WELL";
-    let segmented_string = SegmentedString::new(
-        s, font_size, s.len() as u8, false
+    let segmented_string = SegmentedDisplayString::new(
+        s, font_size, '0', s.len() as u8, false
     );
     spawn_segmented_string(
         Transform::from_xyz(0.0, 4.0, 1.0), segmented_string, assets, &mut commands

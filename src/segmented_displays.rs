@@ -1,6 +1,5 @@
 use bevy::prelude::*;
 use std::f32::consts::{FRAC_PI_2, PI};
-use std::process::id;
 use bevy::pbr::{NotShadowCaster, NotShadowReceiver};
 
 const SEGMENT_LENGTH: f32 = 0.42;
@@ -37,18 +36,6 @@ pub struct SegmentedDisplayAssets {
             unlit_material
         }
     }
-    pub fn get_segment_mesh(&self) -> Handle<Mesh> {
-        self.long_mesh.clone()
-    }
-    pub fn get_half_segment_mesh(&self) -> Handle<Mesh> {
-        self.short_mesh.clone()
-    }
-    pub fn get_lit_segment_material(&self) -> Handle<StandardMaterial> {
-        self.lit_material.clone()
-    }
-    pub fn get_unlit_segment_material(&self) -> Handle<StandardMaterial> {
-        self.unlit_material.clone()
-    }
 }
 
 #[derive(Copy, Clone)]
@@ -60,16 +47,17 @@ pub enum SegmentedAnchor {
 }
 
 #[derive(Component)]
-pub struct SegmentedString {
+pub struct SegmentedDisplayString {
     pub string: String,
-    char_height: f32,
-    char_count: u8,
+    font_size: f32,
+    padding_char: char,
+    digit_count: u8,
     casts_shadows: bool
-} impl SegmentedString {
+} impl SegmentedDisplayString {
     pub fn new(
-        string: &str, char_height: f32, char_count: u8, casts_shadows: bool
+        string: &str, font_size: f32, padding_char: char, digit_count: u8, casts_shadows: bool
     ) -> Self {
-        Self {string: string.to_string(), char_height, char_count, casts_shadows }
+        Self {string: string.to_string(), font_size, padding_char, digit_count, casts_shadows }
     }
     pub fn get_rendered_length(char_count: u8, char_height: f32) -> f32 {
         let l = char_count as f32 * char_height * 0.5;
@@ -83,10 +71,10 @@ pub struct SegmentedString {
 }
 
 #[derive(Component)]
-pub struct SegmentedChar {
+pub struct SegmentDigit {
     char: char,
     index: u8
-} impl SegmentedChar {
+} impl SegmentDigit {
     // the segments 0 through 5 are the outermost segments, clockwise, from the top
     // 6 and 7 are the left and right middle horizontal segments
     // 8, 9, and 10 are the 3 segments above the horizontal line, left to right
@@ -142,10 +130,10 @@ pub struct SegmentedChar {
 }
 
 #[derive(Component)]
-pub struct Segment {
+pub struct DisplaySegment {
     id: u8,
     lit: bool
-} impl Segment {
+} impl DisplaySegment {
     fn get_transform(id: u8, char_height: f32) -> Transform {
         let x = match id {
             4 | 5 => -SPACING_MID,
@@ -183,17 +171,17 @@ pub struct Segment {
 
 pub fn spawn_segmented_string(
     transfrom: Transform,
-    segmented_string: SegmentedString,
+    segmented_string: SegmentedDisplayString,
     display_assets: SegmentedDisplayAssets,
     commands: &mut Commands
 ) -> Entity {
-    let chars = spawn_chars(
-        commands, segmented_string.char_count, segmented_string.char_height
+    let chars = spawn_digits(
+        commands, segmented_string.digit_count, segmented_string.font_size
     );
     for &char_entity in &chars {
         spawn_segments(
-        commands, &display_assets, segmented_string.char_height, 
-        char_entity, segmented_string.casts_shadows
+            commands, &display_assets, segmented_string.font_size,
+            char_entity, segmented_string.casts_shadows
         );
     };
     let segmented_entity = commands.spawn((
@@ -208,45 +196,45 @@ pub fn spawn_segmented_string(
     segmented_entity
 }
 
-fn spawn_chars(
+fn spawn_digits(
     commands: &mut Commands,
-    char_count: u8,
-    char_height: f32
+    digit_count: u8,
+    font_size: f32
 ) -> Vec<Entity> {
-    let mut chars: Vec<Entity> = Vec::with_capacity(char_count as usize);
-    let (start_x, dx) = if char_count > 1 {
-        let length = SegmentedString::get_rendered_length(char_count, char_height);
-        let step = length / char_count as f32;
-        let start = -(length / 2.0) + (char_height / 2.0);
+    let mut digits: Vec<Entity> = Vec::with_capacity(digit_count as usize);
+    let (start_x, dx) = if digit_count > 1 {
+        let length = SegmentedDisplayString::get_rendered_length(digit_count, font_size);
+        let step = length / digit_count as f32;
+        let start = -(length / 2.0) + (font_size / 2.0);
         (start, step)
     } else {
         (0.0f32, 0.0f32)
     };
-    for i in 0..char_count {
+    for i in 0..digit_count {
         let entity = commands.spawn((
-            SegmentedChar {
+            SegmentDigit {
                 char: '0',
                 index: i
             },
             Transform::from_xyz(start_x + dx * i as f32, 0.0, 0.0),
             Visibility::Inherited
         )).id();
-        chars.push(entity)
+        digits.push(entity)
     };
-    chars
+    digits
 }
 
 fn spawn_segments(
     commands: &mut Commands,
     assets: &SegmentedDisplayAssets,
-    char_height: f32,
+    font_size: f32,
     parent: Entity,
     casts_shadows: bool
 ) {
     for i in 0..14u8 {
-        let segment = Segment{id: i, lit: false};
-        let transform = Segment::get_transform(i, char_height);
-        let mesh = if Segment::is_short(i) {
+        let segment = DisplaySegment {id: i, lit: false};
+        let transform = DisplaySegment::get_transform(i, font_size);
+        let mesh = if DisplaySegment::is_short(i) {
             assets.short_mesh.clone()
         } else {
             assets.long_mesh.clone()
@@ -266,44 +254,57 @@ fn spawn_segments(
     };
 }
 
-pub fn update_segmented_displays(
+pub fn update_segmented_strings(
     mut commands: Commands,
-    segmented_string_query: Query<(&SegmentedString, &SegmentedDisplayAssets, &Children)>,
-    mut char_query: Query<(&mut SegmentedChar, &Children)>,
-    mut segment_query: Query<(&mut Segment)>
+    segmented_string_query: Query<(&SegmentedDisplayString, &SegmentedDisplayAssets, &Children), Changed<SegmentedDisplayString>>,
+    mut digit_query: Query<(&mut SegmentDigit, &Children)>,
+    mut segment_query: Query<(&mut DisplaySegment)>
 ) {
     for (segmented_string, assets, string_children) in segmented_string_query {
-        let d = segmented_string.char_count as i8 - segmented_string.string.len() as i8;
+        // this is for resolving when the string is not the same length as the number of digits spawned
+        let d = segmented_string.digit_count as i8 - segmented_string.string.len() as i8;
         let cap = if d < 0 {
             segmented_string.string.len()
         } else {
-            segmented_string.char_count as usize
+            segmented_string.digit_count as usize
         };
         let mut character_truths: Vec<char> = Vec::with_capacity(cap);
-        // if d > 0 {
-        //     for _ in 0..d {
-        //         character_truths.push(' ');
-        //     };
-        // };
+        
+        // "padding" the array with empty spaces will right-align text shorter than our char count
+        if d > 0 {
+            for _ in 0..d {
+                character_truths.push(segmented_string.padding_char);
+            };
+        };
+        
+        // whereas just letting it go will mean anything longer than char count gets truncated
+        // ... hypothetically
         for c in segmented_string.string.to_uppercase().chars() {
             character_truths.push(c);
         };
-        for &char_entity in string_children {
-            let (mut seg_char, char_children) = 
-                char_query.get_mut(char_entity).unwrap();
-            let c = seg_char.char;
-            if character_truths[seg_char.index as usize] != c {
-                seg_char.char = character_truths[seg_char.index as usize];
-                let seq = seg_char.get_sequence();
-                for &segment_entity in char_children {
+        // prep for digit iteration
+        for &digit_entity in string_children {
+            let (mut digit, digit_children) = 
+                digit_query.get_mut(digit_entity).unwrap();
+            let c = digit.char;
+            
+            // this checks to see, per character, if the digits are accurate to the string
+            if character_truths[digit.index as usize] != c {
+                digit.char = character_truths[digit.index as usize];
+                
+                // lookup the correct sequence to represent the character
+                let seq = digit.get_sequence();
+                for &segment_entity in digit_children {
                     let mut segment = segment_query.get_mut(segment_entity).unwrap();
                     let is_lit = segment.lit;
                     let should_be_lit = seq[segment.id as usize];
+                    
+                    // this is a real duct tape or WD40 kind of flowchart
                     if is_lit != should_be_lit {
-                        if should_be_lit {
+                        if should_be_lit {  // if it should be lit, light it
                             segment.lit = true;
                             commands.entity(segment_entity).insert(MeshMaterial3d(assets.lit_material.clone()));
-                        } else if is_lit {
+                        } else if is_lit {  // if not, unlight it
                             segment.lit = false;
                             commands.entity(segment_entity).insert(MeshMaterial3d(assets.unlit_material.clone()));
                         };
