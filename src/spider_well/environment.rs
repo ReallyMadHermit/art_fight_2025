@@ -529,10 +529,129 @@ pub fn update_timer_text(
     };
 }
 
-#[derive(Component)]
-pub struct ShowConditionally {
-    post_win: bool,
-    post_orb: bool,
-    post_idle: bool
+pub fn spawn_helpful_text(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>
+) {
+
+    // define sizes
+    let helpful_font_size = 0.5f32;
+    let timer_font_size = 0.5f32;
+    let win_font_size = 2.0;
+
+    //define materials
+    let white_material = materials.add(
+        StandardMaterial{
+            base_color: Color::WHITE,
+            unlit: true,
+            ..default()
+        }
+    );
+    let unlit_material = materials.add(
+        StandardMaterial{
+            base_color: Color::BLACK,
+            unlit: true,
+            ..default()
+        }
+    );
+    let clear_material = materials.add(
+        StandardMaterial{
+            base_color: Color::linear_rgba(0.0, 0.0, 0.0, 0.0),
+            unlit: true,
+            alpha_mode: AlphaMode::Mask(1.0),
+            ..default()
+        }
+    );
+    let green_material = materials.add(
+        StandardMaterial {
+            base_color: Color::from(css::LAWN_GREEN),
+            unlit: true,
+            ..default()
+        }
+    );
+
+    // assets
+    let helpful_assets = SegmentedDisplayAssets::new(
+        helpful_font_size, white_material.clone(), clear_material.clone(), &mut meshes
+    );
+    let win_assets = SegmentedDisplayAssets::new(
+        win_font_size, green_material.clone(), clear_material.clone(), &mut meshes
+    );
+
+    let win_string = "YOU WIN";
+    let ascend_string = "ASCEND";
+    let descend_string = "DESCEND";
+
+    let descend_segments = SegmentedDisplayString::new(
+        descend_string, helpful_font_size, ' ', descend_string.len() as u8, false
+    );
+    let win_segments = SegmentedDisplayString::new(
+        win_string, win_font_size, ' ', win_string.len() as u8, false
+    );
+    let ascend_segment = SegmentedDisplayString::new(
+        ascend_string, helpful_font_size, ' ', ascend_string.len() as u8, false
+    );
+
+    let win_entity = spawn_segmented_string(
+        Transform::from_xyz(-0.5, 0.0, 2.0), win_segments, win_assets, &mut commands
+    );
+    commands.entity(win_entity).insert(ShowConditionally{condition: DisplayCondition::ShowAfterWin});
+
+    let descend_entity = spawn_segmented_string(
+        Transform::from_xyz(1.4, -1.5, 2.0), descend_segments, helpful_assets.clone(), &mut commands
+    );
+    commands.entity(descend_entity).insert(ShowConditionally{condition: DisplayCondition::ShowBeforeOrbs});
+
+    let ascend_entity = spawn_segmented_string(
+        Transform::from_xyz(0.0, DAMSEL_Y + 1.0, 2.0), ascend_segment, helpful_assets.clone(), &mut commands
+    );
+    commands.entity(ascend_entity).insert(ShowConditionally{condition: DisplayCondition::ShowAfterOrbs});
 }
 
+pub enum DisplayCondition{
+    ShowAfterOrbs,
+    ShowAfterWin,
+    ShowBeforeOrbs
+}
+
+#[derive(Component)]
+pub struct ShowConditionally {
+    condition: DisplayCondition
+}
+
+pub fn update_conditional_displays(
+    im_winning: Res<ImWinningDad>,
+    spirits_acquired: Res<SpiritsAcquired>,
+    mut query: Query<(&mut Visibility, &ShowConditionally)>
+) {
+    for (mut vis, cond) in &mut query {
+        let is_visible = vis.clone() == Visibility::Visible;
+        let should_be_visible = match cond.condition {
+            DisplayCondition::ShowAfterWin => im_winning.bool,
+            DisplayCondition::ShowAfterOrbs => spirits_acquired.bool,
+            DisplayCondition::ShowBeforeOrbs => !spirits_acquired.bool
+        };
+        if is_visible != should_be_visible {
+            vis.toggle_visible_hidden()
+        };
+    }
+}
+
+#[derive(Resource)]
+pub struct ConfettiResource{
+    next_shot: f32,
+    mesh: Handle<Mesh>,
+    red: Handle<StandardMaterial>,
+    green: Handle<StandardMaterial>,
+    blue: Handle<StandardMaterial>
+}
+
+#[derive(Component)]
+pub struct ConfettiLifespan{
+    remaining: f32
+}
+
+// pub fn confetti_display(
+//
+// )

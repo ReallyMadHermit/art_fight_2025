@@ -22,7 +22,8 @@ use characters::{
 pub mod environment;
 use environment::{
     spawn_first_lamp, spawn_camera, spawn_lamps, spawn_sliding_lights, spawn_the_spirits,
-    manage_the_the_spirits, acquire_the_orbs, orb_vis_system, spawn_title, update_timer_text
+    manage_the_the_spirits, acquire_the_orbs, orb_vis_system, spawn_title, update_timer_text,
+    spawn_helpful_text, update_conditional_displays
 };
 
 use crate::segmented_displays::update_segmented_strings;
@@ -39,7 +40,7 @@ impl Plugin for SpiderWellPlugin {
         app.add_systems(Update, web_updater.after(move_player));
         app.add_systems(PostUpdate, camera_mover);
         app.add_event::<CollisionEvent>();
-        app.add_systems(Update, collision_rect_checker.after(move_player));
+        // app.add_systems(Update, collision_rect_checker.after(move_player));
         app.add_systems(Update, move_obstacles.before(collision_rect_checker));
         app.add_systems(Update, checkpoint_checker);
         app.add_systems(Startup, insert_state_resources);
@@ -79,7 +80,8 @@ impl Plugin for SpiderWellPlugin {
         app.add_systems(Update, orb_vis_system);
         app.add_systems(Startup, spawn_title);
         app.add_systems(Update, update_timer_text);
-        // app.add_systems(Update, make_it_spin);
+        app.add_systems(Startup, spawn_helpful_text);
+        app.add_systems(Update, update_conditional_displays);
         
         // segmented displays
         app.add_systems(Update, update_segmented_strings);

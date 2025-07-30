@@ -11,7 +11,7 @@ const SPACING_MIN: f32 = 0.12;
 const CHAR_SPACING: f32 = 0.2;
 const ANGLED_ANGLE: f32 = PI / 10.0;
 
-#[derive(Component)]
+#[derive(Component, Clone)]
 pub struct SegmentedDisplayAssets {
     long_mesh: Handle<Mesh>,
     short_mesh: Handle<Mesh>,
@@ -46,7 +46,7 @@ pub enum SegmentedAnchor {
     Right,
 }
 
-#[derive(Component)]  // TODO: add a right-padded bool
+#[derive(Component, Clone)]  // TODO: add a right-padded bool
 pub struct SegmentedDisplayString {
     pub string: String,
     font_size: f32,
