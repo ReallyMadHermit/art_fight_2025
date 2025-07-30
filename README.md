@@ -18,3 +18,7 @@ A runner game meant to loosely parody the offline dino runner playable in Google
 ## Spider Well
 ![Title Screenshot](./screenshots/spiderwellshot.png)
 I'm THRILLED with how that image came out, it's so striking, and it just, man, what a good pitch image, it's so dramatic. A pretty novel game concept about swinging and climbing with a bit of free-falling, an emphasis on shadows and light. It's called Spider Well as a Downwell reference, and there's a spider. Use WASD, or the arrow keys, or 8456 on your numpad to control your character, hold Spacebar, or 0/insert on your numpad to enter free-fall. The goal is to get to the bottom, and then back to the top, as fast as possible. My personal best is 62 seconds.
+
+[Windows Download](spiderwell%20windows.zip)
+
+[Linux Download](spiderwell%20linux.zip)
