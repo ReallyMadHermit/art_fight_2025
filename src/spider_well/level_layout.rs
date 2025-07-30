@@ -24,9 +24,6 @@ impl Stage1 {
 #[derive(Resource)]
 pub struct DebugLevelAssets {
     cube: Handle<Mesh>,
-    red_mat: Handle<StandardMaterial>,
-    green_mat: Handle<StandardMaterial>,
-    blue_mat: Handle<StandardMaterial>,
     black_mat: Handle<StandardMaterial>
 }
 
@@ -36,18 +33,6 @@ pub fn insert_debug_level_assets(
     mut materials: ResMut<Assets<StandardMaterial>>
 ) {
     let cube = meshes.add(Cuboid::from_length(1.0));
-    let red_mat = materials.add(StandardMaterial {
-        base_color: Color::linear_rgb(1.0, 0.0, 0.0),
-        ..default()
-    });
-    let green_mat = materials.add(StandardMaterial {
-        base_color: Color::linear_rgb(0.0, 1.0, 0.0),
-        ..default()
-    });
-    let blue_mat = materials.add(StandardMaterial {
-        base_color: Color::linear_rgb(0.0, 0.0, 1.0),
-        ..default()
-    });
     let black_mat = materials.add(StandardMaterial {
         base_color: Color::linear_rgb(0.3, 0.3, 0.3),
         metallic: 0.7,
@@ -55,7 +40,7 @@ pub fn insert_debug_level_assets(
         ..default()
     });
     commands.insert_resource(DebugLevelAssets{
-        cube, red_mat, green_mat, blue_mat, black_mat
+        cube, black_mat
     });
 }
 

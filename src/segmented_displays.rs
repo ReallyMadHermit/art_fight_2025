@@ -262,7 +262,7 @@ pub fn update_segmented_strings(
     mut commands: Commands,
     segmented_string_query: Query<(&SegmentedDisplayString, &SegmentedDisplayAssets, &Children), Changed<SegmentedDisplayString>>,
     mut digit_query: Query<(&mut SegmentDigit, &Children)>,
-    mut segment_query: Query<(&mut DisplaySegment)>
+    mut segment_query: Query<&mut DisplaySegment>
 ) {
     for (segmented_string, assets, string_children) in segmented_string_query {
         // this is for resolving when the string is not the same length as the number of digits spawned

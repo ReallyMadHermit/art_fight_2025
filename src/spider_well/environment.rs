@@ -9,7 +9,7 @@ use crate::segmented_displays::{spawn_segmented_string, SegmentedDisplayAssets, 
 use crate::spider_well::level_layout::{LEVEL_WIDTH, SlidingBlocks2, DAMSEL_Y};
 use crate::spider_well::mechanics::{POVCamera, PlayerEntity, PlayerPos, IsIdle, SpeedRunTimer, ImWinningDad};
 
-const FOV: f32 = PI / 8.0;
+// const FOV: f32 = PI / 8.0;
 
 const LIGHT_Z: f32 = (LEVEL_DEPTH / 2.0) + 0.5;
 const LIGHT_COLOR: Color = Color::linear_rgb(1.0, 0.8, 0.4);

@@ -6,7 +6,6 @@ use crate::spider_well::level_layout::LEVEL_WIDTH;
 
 const THREAD_LENGTH_START: f32 = 2.0;
 const THREAD_RADIUS: f32 = 0.0125;
-const STICKING_POINT_RADIUS: f32 = 0.2;
 pub const PLAYER_RADIUS: f32 = 0.45;
 const GRAVITY: f32 = 0.625;
 const LEAP_GRAVITY: f32 = 20.0;
@@ -71,14 +70,6 @@ pub fn insert_simple_resources(
     commands.insert_resource(LastCheckPoint {pos: Vec2::ZERO, hurt_pos: Vec2::ZERO});
     commands.insert_resource(HurtReturn {f32: 0.0});
     commands.insert_resource(IsIdle{bool: true});
-}
-
-#[derive(Eq, PartialEq, Copy, Clone)]
-pub enum ControlScheme {
-    Wasd,
-    Arrows,
-    Numpad,
-    None
 }
 
 #[derive(Resource)]
@@ -267,12 +258,11 @@ pub fn move_player(
 pub struct WebbingAssets {
     material: Handle<StandardMaterial>,
     thread_mesh: Handle<Mesh>,
-    sphere_mesh: Handle<Mesh>
 } impl WebbingAssets {
     pub fn new(
-        material: Handle<StandardMaterial>, thread_mesh: Handle<Mesh>, sphere_mesh: Handle<Mesh>
+        material: Handle<StandardMaterial>, thread_mesh: Handle<Mesh>
     ) -> Self {
-        Self {material, thread_mesh, sphere_mesh }
+        Self {material, thread_mesh }
     }
 }
 
@@ -292,8 +282,7 @@ pub fn insert_webbing_assets(
         ..default()
     });
     let thread_mesh = meshes.add(Cylinder::new(THREAD_RADIUS, 1.0));
-    let sticky_mesh = meshes.add(Sphere::new(STICKING_POINT_RADIUS));
-    commands.insert_resource(WebbingAssets::new(material, thread_mesh, sticky_mesh));
+    commands.insert_resource(WebbingAssets::new(material, thread_mesh));
 }
 
 #[derive(Component)]
