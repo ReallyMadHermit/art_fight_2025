@@ -46,13 +46,6 @@ pub fn spawn_player(
     mut materials: ResMut<Assets<StandardMaterial>>,
     webbing_assets: Res<WebbingAssets>
 ) {
-    let mat = materials.add(StandardMaterial {
-        base_color: Color::linear_rgba(0.8, 0.0, 0.0, 0.2),
-        unlit: true,
-        alpha_mode: AlphaMode::Add,
-        ..default()
-    });
-    let mesh = meshes.add(Sphere::new(PLAYER_RADIUS));
     let entity = commands.spawn((
         // Mesh3d(mesh),
         // MeshMaterial3d(mat),
@@ -576,7 +569,7 @@ pub fn we_are_indeed_resetting(
     mut is_idle: ResMut<IsIdle>,
     player_pos: Res<PlayerPos>
 ) {
-    for event in event_reader.read() {
+    for _ in event_reader.read() {
         // last checkpoint & hurt return
         last_check_point.pos = Vec2::new(0.0, 1.0);
         last_check_point.hurt_pos = player_pos.vec;

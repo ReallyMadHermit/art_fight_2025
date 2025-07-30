@@ -447,7 +447,7 @@ pub fn spawn_title(
     let segmented_string = SegmentedDisplayString::new(
         s, font_size, 'O', s.len() as u8, false
     );
-    let s = spawn_segmented_string(
+    spawn_segmented_string(
         Transform::from_xyz(0.0, 4.0, 1.0), segmented_string, assets, &mut commands
     );
     // commands.entity(s).insert(SpinnyTitle);
@@ -537,20 +537,12 @@ pub fn spawn_helpful_text(
 
     // define sizes
     let helpful_font_size = 0.5f32;
-    let timer_font_size = 0.5f32;
     let win_font_size = 2.0;
 
     //define materials
     let white_material = materials.add(
         StandardMaterial{
             base_color: Color::WHITE,
-            unlit: true,
-            ..default()
-        }
-    );
-    let unlit_material = materials.add(
-        StandardMaterial{
-            base_color: Color::BLACK,
             unlit: true,
             ..default()
         }
