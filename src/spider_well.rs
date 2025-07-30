@@ -40,7 +40,7 @@ impl Plugin for SpiderWellPlugin {
         app.add_systems(Update, web_updater.after(move_player));
         app.add_systems(PostUpdate, camera_mover);
         app.add_event::<CollisionEvent>();
-        // app.add_systems(Update, collision_rect_checker.after(move_player));
+        app.add_systems(Update, collision_rect_checker.after(move_player));
         app.add_systems(Update, move_obstacles.before(collision_rect_checker));
         app.add_systems(Update, checkpoint_checker);
         app.add_systems(Startup, insert_state_resources);

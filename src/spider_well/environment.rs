@@ -637,21 +637,3 @@ pub fn update_conditional_displays(
         };
     }
 }
-
-#[derive(Resource)]
-pub struct ConfettiResource{
-    next_shot: f32,
-    mesh: Handle<Mesh>,
-    red: Handle<StandardMaterial>,
-    green: Handle<StandardMaterial>,
-    blue: Handle<StandardMaterial>
-}
-
-#[derive(Component)]
-pub struct ConfettiLifespan{
-    remaining: f32
-}
-
-// pub fn confetti_display(
-//
-// )
