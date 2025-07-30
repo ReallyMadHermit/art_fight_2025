@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use crate::event_exists;
+
 pub mod mechanics;
 use mechanics::{
     spawn_player, insert_simple_resources, player_controls, move_player,
@@ -20,7 +21,6 @@ use characters::{
 };
 
 pub mod environment;
-
 use environment::{
     spawn_first_lamp, spawn_camera, spawn_lamps, spawn_sliding_lights, spawn_the_spirits,
     manage_the_the_spirits, acquire_the_orbs, orb_vis_system, spawn_title, update_timer_text,
