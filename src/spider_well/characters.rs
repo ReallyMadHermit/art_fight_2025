@@ -189,13 +189,7 @@ enum LimbPartType {
     LowerArmJoint
 } impl LimbPartType {
     fn is_segment(&self) -> bool {
-        match self {
-            Self::LegSegment => true,
-            Self::UpperArmSegment => true,
-            Self::MiddleArmSegment => true,
-            Self::LowerArmSegment => true,
-            _ => false
-        }
+        matches!(self, Self::LegSegment | Self::UpperArmSegment | Self::MiddleArmSegment | Self::LowerArmSegment)
     }
     fn get_twin(&self) -> Self {
         match self {
@@ -337,7 +331,7 @@ pub fn spawn_spider_parts(
                 &joint_material
             };
             for id in LimbPartType::LIMB_IDS {
-                if !is_segment && id == LimbPartType::LIMB_IDS.last().unwrap().clone() {
+                if !is_segment && id == *LimbPartType::LIMB_IDS.last().unwrap() {
                     mesh = &claw_mesh;
                     material = &claw_material;
                 };
@@ -356,7 +350,7 @@ pub fn spawn_spider_parts(
                             segment_id: id,
                             side
                         },
-                        ChildOf(player_entity.entity.clone())
+                        ChildOf(player_entity.entity)
                     )).id();
                     if is_segment {
                         entities.push((entity, side));
@@ -423,18 +417,18 @@ pub fn apply_limb_positions(
         let is_segment = spider_part.part_type.is_segment();
         if is_segment {  // if it's a segment...
             // we gotta look up its joint, since all segments point to their joints
-            let mut joint_key = spider_part.clone();
+            let mut joint_key = *spider_part;
             joint_key.part_type = joint_key.part_type.get_twin();
-            let point_to = limb_positions.hash_map.get(&joint_key).unwrap().clone();
+            let point_to = *limb_positions.hash_map.get(&joint_key).unwrap();
             // if this is the first joint, we attach at 0.0 + limb offset
             let p = if spider_part.segment_id < 1 {
                 let o = joint_key.part_type.get_root_offset();
                 let v = Vec2::new(0.0, o);
                 (point_to + v) / 2.0
             } else { // else we lookup the previous joint
-                let mut base_key = joint_key.clone();
+                let mut base_key = joint_key;
                 base_key.segment_id -= 1;
-                let base_pos = limb_positions.hash_map.get(&base_key).unwrap().clone();
+                let base_pos = *limb_positions.hash_map.get(&base_key).unwrap();
                 (base_pos + point_to) / 2.0
             };
             transform.translation = p.extend(0.0);

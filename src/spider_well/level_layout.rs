@@ -161,7 +161,6 @@ impl Stage2 {
 
     fn spawn_blocks_2(commands: &mut Commands, assets: &Res<DebugLevelAssets>) -> Vec<Entity> {
         let scale_vec = Vec3::new(Self::BLOCKS2SIZE, Self::BLOCKS2SIZE, 1.0);
-        let mats = [&assets.red_mat, &assets.green_mat, &assets.blue_mat];
         let mesh = &assets.cube;
         let mut vec: Vec<Entity> = Vec::with_capacity(Self::BLOCKS2COUNT);
         for i in 0..Self::BLOCKS2COUNT {

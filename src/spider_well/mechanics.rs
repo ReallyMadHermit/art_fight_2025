@@ -42,8 +42,6 @@ pub struct PlayerEntity{
 
 pub fn spawn_player(
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
     webbing_assets: Res<WebbingAssets>
 ) {
     let entity = commands.spawn((
@@ -481,9 +479,7 @@ pub fn checkpoint_checker(
 pub fn insert_state_resources(
     mut commands: Commands,
 ) {
-    
-    let mut s = String::with_capacity(6);
-    s = "000".to_string();
+    let s = "000".to_string();
     commands.insert_resource(SpeedRunTimer{start: 0.0, running: false, string: s});
     commands.insert_resource(ImWinningDad{bool: false});
     commands.insert_resource(ResetTimer{held: 0.0});

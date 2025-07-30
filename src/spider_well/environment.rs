@@ -169,17 +169,6 @@ pub struct LampMaterials {
     post_material: Handle<StandardMaterial>
 }
 
-struct LampSpecs {
-    root_angle: f32,
-    bulb_location: Vec2,
-} impl LampSpecs {
-    pub fn new(
-        root_angle: f32, bulb_location: Vec2
-    ) -> Self {
-        Self {root_angle, bulb_location}
-    }
-}
-
 pub fn spawn_lamps(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -331,14 +320,13 @@ pub fn spawn_the_spirits(
         Visibility::Visible,
         BigOrb
     )).id();
-    let mut i = 0u8;
     let orb_mesh = meshes.add(Sphere::new(ORB_RADIUS));
     let sphere_colors = [
         Color::linear_rgba(1.0, 0.0, 0.0, 1.0),
         Color::linear_rgba(0.0, 1.0, 0.0, 1.0),
         Color::linear_rgba(0.0, 0.0, 1.0, 1.0)
     ];
-    for color in sphere_colors {
+    for (i, color) in sphere_colors.into_iter().enumerate() {
         let material = materials.add(StandardMaterial{
             base_color: color,
             emissive: color.to_linear(),
@@ -349,7 +337,7 @@ pub fn spawn_the_spirits(
             commands.spawn((
                 Mesh3d(orb_mesh.clone()),
                 MeshMaterial3d(material.clone()),
-                TheSpirits{id: i, orb_owned: o},
+                TheSpirits{id: i as u8, orb_owned: o},
                 PointLight {
                     color,
                     intensity: 1000.0,
@@ -366,7 +354,6 @@ pub fn spawn_the_spirits(
                 Visibility::Visible,
             ));
         };
-        i += 1;
     };
     commands.insert_resource(SpiritsAcquired{bool: false});
 }
@@ -391,8 +378,8 @@ pub fn manage_the_the_spirits(
     time: Res<Time>,
     orb_query: Query<(&mut Transform, &mut Visibility, &TheSpirits), Without<BigOrb>>
 ) {
-    for (mut transform, mut vis, spirits) in orb_query {
-        let is_visible = vis.clone() == Visibility::Visible;
+    for (mut transform, vis, spirits) in orb_query {
+        let is_visible = *vis == Visibility::Visible;
         if !is_visible {
             continue
         };
@@ -409,7 +396,7 @@ pub fn orb_vis_system(
     spirits_acquired: Res<SpiritsAcquired>
 ) {
     for (mut vis, spirits) in orb_query {
-        let is_visible = vis.clone() == Visibility::Visible;
+        let is_visible = *vis == Visibility::Visible;
         let should_be_visible = spirits_acquired.bool != spirits.orb_owned;
         if is_visible != should_be_visible {
             vis.toggle_visible_hidden();
@@ -505,16 +492,13 @@ pub fn update_timer_text(
     timer: Res<SpeedRunTimer>,
     time: Res<Time>,
     im_winning: Res<ImWinningDad>,
-    mut query: Query<(&mut SegmentedDisplayString, &mut Visibility, &mut TimerText)>
+    query: Query<(&mut SegmentedDisplayString, &mut Visibility, &mut TimerText)>
 ) {
     for (mut segmented_display, mut visibility, mut timer_text) in query {
         if segmented_display.string != timer.string {
             segmented_display.string = timer.string.clone();
         };
-        let is_visible = match visibility.clone() {
-            Visibility::Visible => true,
-            _ => false
-        };
+        let is_visible = matches!(*visibility, Visibility::Visible);
         if !im_winning.bool && !is_visible {
             visibility.toggle_visible_hidden()
         } else if im_winning.bool{
@@ -588,23 +572,23 @@ pub fn spawn_helpful_text(
     let win_entity = spawn_segmented_string(
         Transform::from_xyz(-0.5, 0.0, 2.0), win_segments, win_assets, &mut commands
     );
-    commands.entity(win_entity).insert(ShowConditionally{condition: DisplayCondition::ShowAfterWin});
+    commands.entity(win_entity).insert(ShowConditionally{condition: DisplayCondition::AfterWin });
 
     let descend_entity = spawn_segmented_string(
         Transform::from_xyz(1.4, -1.5, 2.0), descend_segments, helpful_assets.clone(), &mut commands
     );
-    commands.entity(descend_entity).insert(ShowConditionally{condition: DisplayCondition::ShowBeforeOrbs});
+    commands.entity(descend_entity).insert(ShowConditionally{condition: DisplayCondition::BeforeOrbs });
 
     let ascend_entity = spawn_segmented_string(
         Transform::from_xyz(0.0, DAMSEL_Y + 1.0, 2.0), ascend_segment, helpful_assets.clone(), &mut commands
     );
-    commands.entity(ascend_entity).insert(ShowConditionally{condition: DisplayCondition::ShowAfterOrbs});
+    commands.entity(ascend_entity).insert(ShowConditionally{condition: DisplayCondition::AfterOrbs });
 }
 
 pub enum DisplayCondition{
-    ShowAfterOrbs,
-    ShowAfterWin,
-    ShowBeforeOrbs
+    AfterOrbs,
+    AfterWin,
+    BeforeOrbs
 }
 
 #[derive(Component)]
@@ -618,11 +602,11 @@ pub fn update_conditional_displays(
     mut query: Query<(&mut Visibility, &ShowConditionally)>
 ) {
     for (mut vis, cond) in &mut query {
-        let is_visible = vis.clone() == Visibility::Visible;
+        let is_visible = *vis == Visibility::Visible;
         let should_be_visible = match cond.condition {
-            DisplayCondition::ShowAfterWin => im_winning.bool,
-            DisplayCondition::ShowAfterOrbs => spirits_acquired.bool,
-            DisplayCondition::ShowBeforeOrbs => !spirits_acquired.bool
+            DisplayCondition::AfterWin => im_winning.bool,
+            DisplayCondition::AfterOrbs => spirits_acquired.bool,
+            DisplayCondition::BeforeOrbs => !spirits_acquired.bool
         };
         if is_visible != should_be_visible {
             vis.toggle_visible_hidden()
