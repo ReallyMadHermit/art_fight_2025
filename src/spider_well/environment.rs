@@ -4,9 +4,10 @@ use bevy::core_pipeline::tonemapping::Tonemapping;
 use bevy::pbr::{NotShadowCaster, NotShadowReceiver};
 use bevy::prelude::*;
 use bevy::render::camera::ScalingMode;
+use bevy::color::palettes::css;
 use crate::segmented_displays::{spawn_segmented_string, SegmentedDisplayAssets, SegmentedDisplayString};
 use crate::spider_well::level_layout::{LEVEL_WIDTH, SlidingBlocks2, DAMSEL_Y};
-use crate::spider_well::mechanics::{POVCamera, PlayerEntity, PlayerPos, IsIdle, SpeedRunTimer};
+use crate::spider_well::mechanics::{POVCamera, PlayerEntity, PlayerPos, IsIdle, SpeedRunTimer, ImWinningDad};
 
 const FOV: f32 = PI / 8.0;
 
@@ -462,7 +463,9 @@ pub fn spawn_title(
 // }
 
 #[derive(Component)]
-pub struct TimerText;
+pub struct TimerText {
+    flash: f32
+}
 
 pub fn spawn_timer(
     commands: &mut Commands,
@@ -472,7 +475,7 @@ pub fn spawn_timer(
     let font_size = 0.532;
     let lit_material = materials.add(
         StandardMaterial{
-            base_color: Color::WHITE,
+            base_color: Color::from(css::GOLD),
             unlit: true,
             ..default()
         }
@@ -494,16 +497,42 @@ pub fn spawn_timer(
     let entity = spawn_segmented_string(
         Transform::from_xyz((-LEVEL_WIDTH / 2.0) + 0.5, 3.5, -1.0), segmented_string, assets, commands
     );
-    commands.entity(entity).insert(TimerText);
+    commands.entity(entity).insert(TimerText{flash: 0.0});
     entity
 }
 
 pub fn update_timer_text(
     timer: Res<SpeedRunTimer>,
-
-    mut query: Query<&mut SegmentedDisplayString, With<TimerText>>
+    time: Res<Time>,
+    im_winning: Res<ImWinningDad>,
+    mut query: Query<(&mut SegmentedDisplayString, &mut Visibility, &mut TimerText)>
 ) {
-    for mut segmented_display in query {
-        segmented_display.string = timer.string.clone();
+    for (mut segmented_display, mut visibility, mut timer_text) in query {
+        if segmented_display.string != timer.string {
+            segmented_display.string = timer.string.clone();
+        };
+        let is_visible = match visibility.clone() {
+            Visibility::Visible => true,
+            _ => false
+        };
+        if !im_winning.bool && !is_visible {
+            visibility.toggle_visible_hidden()
+        } else if im_winning.bool{
+            timer_text.flash += time.delta_secs();
+            if is_visible && timer_text.flash > 0.5 {
+                visibility.toggle_visible_hidden()
+            } else if timer_text.flash >= 1.0 {
+                visibility.toggle_visible_hidden();
+                timer_text.flash = 0.0
+            };
+        };
     };
 }
+
+#[derive(Component)]
+pub struct ShowConditionally {
+    post_win: bool,
+    post_orb: bool,
+    post_idle: bool
+}
+

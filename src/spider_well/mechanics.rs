@@ -222,7 +222,7 @@ pub fn move_player(
 
     // rope-crawl input handling
     if player_inputs.y > 0 {
-        let l = player_swing.thread_length - PLAYER_CLIMB * dt;
+        let l = (player_swing.thread_length - PLAYER_CLIMB * dt).max(1.0);
         player_swing.angular_v *= player_swing.thread_length / l;
         player_swing.thread_length = l;
         is_idle.bool = false;
@@ -494,7 +494,7 @@ pub fn insert_state_resources(
 
 #[derive(Resource)]
 pub struct ImWinningDad{
-    bool: bool
+    pub bool: bool
 }
 
 pub fn are_ya_winning_son(
