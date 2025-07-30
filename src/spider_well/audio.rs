@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use crate::common::AudioSystem;
 use crate::spider_well::mechanics::{CollisionEvent, CheckPointEvent};
 
-const MUSIC: &[u8] = include_bytes!("sound_files/groovy_descent_quiet.wav");
+const MUSIC: &[u8] = include_bytes!("sound_files/groovy_descent.wav");
 const OOPS: &[u8] = include_bytes!("sound_files/spiderwell_oops.wav");
 const CHECKPOINT: &[u8] = include_bytes!("sound_files/spiderwell_checkpoint.wav");
 
