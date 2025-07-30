@@ -5,7 +5,7 @@ use mechanics::{
     spawn_player, insert_simple_resources, player_controls, move_player,
     insert_webbing_assets, web_updater, camera_mover, CollisionEvent, collision_rect_checker,
     move_obstacles, checkpoint_checker, insert_state_resources, are_ya_winning_son,
-    speed_run_timer, ResetEvent, are_we_resetting, we_are_indeed_resetting
+    speed_run_timer, ResetEvent, are_we_resetting, we_are_indeed_resetting, CheckPointEvent
 };
 
 pub mod level_layout;
@@ -20,10 +20,16 @@ use characters::{
 };
 
 pub mod environment;
+
 use environment::{
     spawn_first_lamp, spawn_camera, spawn_lamps, spawn_sliding_lights, spawn_the_spirits,
     manage_the_the_spirits, acquire_the_orbs, orb_vis_system, spawn_title, update_timer_text,
     spawn_helpful_text, update_conditional_displays
+};
+
+pub mod audio;
+use audio::{
+    play_music, oops_audio_player, checkpoint_audio_player
 };
 
 use crate::segmented_displays::update_segmented_strings;
@@ -51,6 +57,7 @@ impl Plugin for SpiderWellPlugin {
         app.add_systems(PostUpdate, we_are_indeed_resetting
             .run_if(event_exists!(ResetEvent))
             .after(are_we_resetting));
+        app.add_event::<CheckPointEvent>();
 
         // layout
         app.add_systems(Startup, insert_debug_level_assets);
@@ -82,6 +89,11 @@ impl Plugin for SpiderWellPlugin {
         app.add_systems(Update, update_timer_text);
         app.add_systems(Startup, spawn_helpful_text);
         app.add_systems(Update, update_conditional_displays);
+
+        // audio
+        app.add_systems(Startup, play_music);
+        app.add_systems(Update, oops_audio_player.run_if(event_exists!(CollisionEvent)));
+        app.add_systems(Update, checkpoint_audio_player.run_if(event_exists!(CheckPointEvent)));
         
         // segmented displays
         app.add_systems(Update, update_segmented_strings);

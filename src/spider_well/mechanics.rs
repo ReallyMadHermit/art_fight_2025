@@ -16,7 +16,7 @@ const PLAYER_DRAG: f32 = 0.10;
 const STATIC_DRAG: f32 = 1.0;
 const CAMERA_RATE: f32 = 3.0;
 const HANG_POINT: Vec2 = Vec2{ x: 0.0, y: THREAD_LENGTH_START + 1.0};
-const HURT_RETURN_TIME: f32 = 0.5;
+const HURT_RETURN_TIME: f32 = 1.6;
 
 #[derive(Component)]
 pub struct POVCamera;
@@ -460,11 +460,15 @@ pub fn spawn_checkpoint(
     commands.spawn(CheckPoint::new(y));
 }
 
+#[derive(Event)]
+pub struct CheckPointEvent;
+
 pub fn checkpoint_checker(
     player_pos: Res<PlayerPos>,
     mut last_check_point: ResMut<LastCheckPoint>,
     mut query: Query<&mut CheckPoint>,
-    is_ridle: Res<IsIdle>
+    is_ridle: Res<IsIdle>,
+    mut checkpoint_writer: EventWriter<CheckPointEvent>
 ) {
     if is_ridle.bool {
         return;
@@ -474,7 +478,7 @@ pub fn checkpoint_checker(
         if checkpoint.checked {
             continue;
         } else if py < checkpoint.y {
-            println!("bing bing, check point!!");
+            checkpoint_writer.write(CheckPointEvent);
             last_check_point.pos.y = checkpoint.y;
             checkpoint.checked = true;
         };
@@ -500,10 +504,12 @@ pub struct ImWinningDad{
 pub fn are_ya_winning_son(
     spirits_acquired: Res<SpiritsAcquired>,
     player_pos: Res<PlayerPos>,
-    mut im_winning: ResMut<ImWinningDad>
+    mut im_winning: ResMut<ImWinningDad>,
+    mut checkpoint_writer: EventWriter<CheckPointEvent>
 ) {
     if !im_winning.bool && spirits_acquired.bool && player_pos.vec.y > 0.0 {
         im_winning.bool = true;
+        checkpoint_writer.write(CheckPointEvent);
     };
 }
 
